@@ -2,7 +2,7 @@
 This project describes a "sparse" implementation of Non Maximum Suppression, useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
-  <center><img src="./assets/images/timings_medium_image.png" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/timings_medium_image.png?token=AEJMSVNEIBF2PMWIVASMKATAMIKHS" width="700" />
   <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
 </p>
 
@@ -70,7 +70,7 @@ This project offers a way to overcome the aforementioned issues elegantly:
 Note that the timing reported below are all inclusive: it notably includes the tree building process, otherwise comparison would not be fair.
 
 <p float="center">
-  <center><img src="./assets/images/timingsxkcd.png" width="700" />
+  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/timingsxkcd.png" width="700" />
   <figcaption>Run times (on a virtual image of 100kx100k pixels)</figcaption></center>
 </p>
 
@@ -114,7 +114,7 @@ tree = BallTree(data, leaf_size=16)
 
 * For the sake of exhaustivity, a `KDTree` class was also implemented, but turned out to be equally fast as the `BallTree` when used in the NMS:
 <p float="center">
-  <center><img src="./assets/images/timings_kd_versus_bt.png" width="700" />
+  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/timings_kd_versus_bt.png" width="700" />
   <figcaption>Tree building times comparison</figcaption></center>
 </p>
 
@@ -123,7 +123,7 @@ tree = BallTree(data, leaf_size=16)
 The BallTree implemented in this repo was timed against scikit-learn's `neighbors` one.
 ### Tree building time
 <p float="center">
-  <center><img src="./assets/images/building_timings.png" width="700" />
+  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/building_timings.png" width="700" />
   <figcaption>Trees building times comparison</figcaption></center>
 </p>
 
@@ -131,7 +131,7 @@ The (minor) slow down observed against sklearn implementation is probably relate
 
 ### Tree query time
 <p float="center">
-  <center><img src="./assets/images/query_timings.png" width="700" />
+  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/query_timings.png" width="700" />
   <figcaption>Trees query times comparison (single query, radius=100) in a 1000x1000 space</figcaption></center>
 </p>
 
