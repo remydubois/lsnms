@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "lsnms"
+version = "0.1.0"
+description = "Large Scale Non Maximum Suppresion"
+authors = ["Rémy Dubois <remydubois14@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "1.19.5"
+numba = "0.53.1"
+
+[tool.poetry.dev-dependencies]
+tqdm = "4.50.2"
+torch = "1.7.1"
+torchvision = "0.8.2"
+scikit_learn = "0.24.1"
+matplotlib = "3.3.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
