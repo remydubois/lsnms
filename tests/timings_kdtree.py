@@ -102,14 +102,15 @@ def test_speed_nms():
 
 def test_tree_query_timing():
 
-    ns = np.arange(1000, 200000, 10000)
+    ns = np.arange(1000, 400000, 10000)
     ts = []
+    leaf_size = 128
     naive_ts = []
-    repeats = 100
+    repeats = 50
     for n in ns:
         data = np.random.uniform(0, 1000, (n, 2))
-        sk_tree = skKDT(data, leaf_size=16)
-        tree = KDTree(data, leaf_size=16)
+        sk_tree = skKDT(data, leaf_size=int(leaf_size * 0.67))
+        tree = KDTree(data, leaf_size=leaf_size)
         _ = tree.query_radius(data[0], 200.0)
         timer = Timer(lambda: tree.query_radius(data[0], 100.0))
         ts.append(timer.timeit(number=repeats) / repeats * 1000)
@@ -129,23 +130,26 @@ def test_tree_query_timing():
 
 
 def test_tree_building_timing():
-    ns = np.arange(1000, 300000, 25000)
+    ns = np.arange(1000, 100_000, 5000)
     ts = []
+    repeats = 10
+    leaf_size = 128
     naive_ts = []
     for n in ns:
         data = np.random.uniform(0, n, (n, 2))
         _ = KDTree(data, 16)
-        timer = Timer(lambda: KDTree(data, 16))
-        ts.append(timer.timeit(number=5) / 5)
-        naive_timer = Timer(lambda: skKDT(data, 16))
-        naive_ts.append(naive_timer.timeit(5) / 5)
+        timer = Timer(lambda: KDTree(data, leaf_size))
+        ts.append(timer.timeit(number=repeats) / repeats)
+        # Sklearn allows leafs to be twice as big as the leaf_size given, see https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KDTree.html
+        naive_timer = Timer(lambda: skKDT(data, int(leaf_size * 0.67)))
+        naive_ts.append(naive_timer.timeit(repeats) / repeats)
 
     with plt.xkcd():
         f, ax = plt.subplots()
         ax.plot(ns, ts, label="lsnms tree", marker="o")
         ax.plot(ns, naive_ts, label="sklearn", marker="o")
         ax.set_xlabel("Number of datapoints", c="k")
-        ax.set_ylabel("Elapsed time (s) (mean of 5 runs)")
+        ax.set_ylabel(f"Elapsed time (s) (mean of {repeats} runs)")
         ax.set_title("sklearn KDTree versus LSNMS tree building timing")
         plt.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.85)
         ax.legend()

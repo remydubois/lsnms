@@ -157,17 +157,19 @@ def split_along_axis(data, axis):
     Tuple[np.array]
         Left data point indices, right data point indices
     """
-    indices = np.arange(len(data))
-    cap = np.median(data[:, axis])
-    mask = data[:, axis] <= cap
-    n_left = mask.sum()
-    # Account for the case where all positions along this axis are equal: split in the middle
-    if n_left == len(data) or n_left == 0:
-        left = indices[: len(indices) // 2]
-        right = indices[len(indices) // 2 :]
-    else:
-        left = indices[mask]
-        right = indices[np.logical_not(mask)]
+    # indices = np.arange(len(data))
+    # cap = np.median(data[:, axis])
+    # mask = data[:, axis] <= cap
+    # n_left = mask.sum()
+    # # Account for the case where all positions along this axis are equal: split in the middle
+    # if n_left == len(data) or n_left == 0:
+    #     left = indices[: len(indices) // 2]
+    #     right = indices[len(indices) // 2 :]
+    # else:
+    #     left = indices[mask]
+    #     right = indices[np.logical_not(mask)]
+    # return left, right
+    left, right = argpartition(data[:, axis])
     return left, right
 
 
@@ -227,3 +229,94 @@ def box_englobing_boxes(boxes):
         bounds.insert(j, boxes[:, j].min())
         bounds.insert(2 * j + 1, boxes[:, j + ndim].max())
     return np.array(bounds)
+
+
+@njit
+def less_than(x, y):
+    return x < y
+
+
+@njit
+def _partition(A, low, high, indices):
+    mid = (low + high) >> 1
+    # NOTE: the pattern of swaps below for the pivot choice and the
+    # partitioning gives good results (i.e. regular O(n log n))
+    # on sorted, reverse-sorted, and uniform arrays.  Subtle changes
+    # risk breaking this property.
+    # Use median of three {low, middle, high} as the pivot
+    if less_than(A[mid], A[low]):
+        A[low], A[mid] = A[mid], A[low]
+        indices[low], indices[mid] = indices[mid], indices[low]
+    if less_than(A[high], A[mid]):
+        A[high], A[mid] = A[mid], A[high]
+        indices[high], indices[mid] = indices[mid], indices[high]
+    if less_than(A[mid], A[low]):
+        A[low], A[mid] = A[mid], A[low]
+        indices[low], indices[mid] = indices[mid], indices[low]
+    pivot = A[mid]
+
+    A[high], A[mid] = A[mid], A[high]
+    indices[high], indices[mid] = indices[mid], indices[high]
+    i = low
+    j = high - 1
+    while True:
+        while i < high and less_than(A[i], pivot):
+            i += 1
+        while j >= low and less_than(pivot, A[j]):
+            j -= 1
+        if i >= j:
+            break
+        A[i], A[j] = A[j], A[i]
+        # print('in', A)
+        indices[i], indices[j] = indices[j], indices[i]
+        i += 1
+        j -= 1
+    # Put the pivot back in its final place (all items before `i`
+    # are smaller than the pivot, all items at/after `i` are larger)
+    # print(A)
+    A[i], A[high] = A[high], A[i]
+    indices[i], indices[high] = indices[high], indices[i]
+    # print('out', A, indices, A[indices])
+    return i
+
+
+@njit
+def _select(arry, k, low, high):
+    """
+    Select the k'th smallest element in array[low:high + 1].
+    """
+    indices = np.arange(len(arry))
+    i = _partition(arry, low, high, indices)
+    while i != k:
+        if i < k:
+            low = i + 1
+            i = _partition(arry, low, high, indices)
+        else:
+            high = i - 1
+            i = _partition(arry, low, high, indices)
+    return indices, i
+
+
+@njit
+def argpartition(arry):
+    """
+    Is approx three folds faster than the median method
+
+    Parameters
+    ----------
+    arry : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """    
+    low = 0
+    high = len(arry) - 1
+    k = len(arry) >> 1
+    tmp_arry = arry.flatten()
+    indices, i = _select(tmp_arry, k, low, high)
+    left = indices[:k]
+    right = indices[k:]
+    return left, right

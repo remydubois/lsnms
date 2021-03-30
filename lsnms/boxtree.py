@@ -56,7 +56,8 @@ class Node:
         # Stores the data
         self.data = data
         self.axis = axis
-        assert self.data.shape[-1] % 2 == 0
+        assert len(data) > 0, 'Empty dataset'
+        assert self.data.shape[-1] % 2 == 0, 'odd dimensionality'
         self.dimensionality = data.shape[-1] // 2
 
         # Stores indices of each data point

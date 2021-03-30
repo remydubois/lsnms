@@ -102,7 +102,7 @@ def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-
 
 
 @njit
-def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
+def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, tree_leaf_size=128):
     """
     Regular NMS.
     For a given bbox, it will greedily discard all the other overlapping bboxes with lower score.
@@ -143,12 +143,16 @@ def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
         List of indices to keep, sorted by decreasing score confidence
     """
     keep = []
-
     # Check that boxes are in correct orientation
     deltas = boxes[:, 2:] - boxes[:, :2]
     assert deltas.min() > 0
 
-    tree = BoxTree(boxes, 128)
+    # Get useless boxes out
+    if score_threshold > 0.:
+        w = np.where(scores > score_threshold)
+        boxes = boxes[w]
+        scores = scores[w]
+    tree = BoxTree(boxes, tree_leaf_size)
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
