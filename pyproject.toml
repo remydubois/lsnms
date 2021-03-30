@@ -22,5 +22,5 @@ scikit_learn = "0.24.1"
 matplotlib = "3.3.2"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "setuptools>=30.3.0,<50",]
 build-backend = "poetry.core.masonry.api"

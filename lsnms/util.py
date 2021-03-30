@@ -37,17 +37,17 @@ def intersection(boxA, boxB):
     float64
         Area of intersection
     """
-    xA = max(boxA[0], boxB[0])
-    xB = min(boxA[2], boxB[2])
+    xA = max(boxA[..., 0], boxB[..., 0])
+    xB = min(boxA[..., 2], boxB[..., 2])
     dx = max(xB - xA, 0.0)
-    if dx <= 0:
-        return 0.0
+    # if dx <= 0:
+    #     return 0.0
 
-    yA = max(boxA[1], boxB[1])
-    yB = min(boxA[3], boxB[3])
+    yA = max(boxA[..., 1], boxB[..., 1])
+    yB = min(boxA[..., 3], boxB[..., 3])
     dy = max(yB - yA, 0.0)
-    if dy <= 0.0:
-        return 0.0
+    # if dy <= 0.0:
+    #     return 0.0
 
     # compute the area of intersection rectangle
     return dx * dy
@@ -216,4 +216,14 @@ def englobing_box(data):
     for j in range(data.shape[-1]):
         bounds.insert(j, data[:, j].min())
         bounds.insert(2 * j + 1, data[:, j].max())
+    return np.array(bounds)
+
+
+@njit
+def box_englobing_boxes(boxes):
+    bounds = []
+    ndim = boxes.shape[-1] // 2
+    for j in range(ndim):
+        bounds.insert(j, boxes[:, j].min())
+        bounds.insert(2 * j + 1, boxes[:, j + ndim].max())
     return np.array(bounds)
