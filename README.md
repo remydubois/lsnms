@@ -137,6 +137,3 @@ The (minor) slow down observed against sklearn implementation is probably relate
 </p>
 
 Query time are somehow identical. However, my implementation does seem to not scale as well as scikit-learn's one, a minor slowdown could be observed for extremely large datasets (million-ish data points).
-
-### Warnings
-Because input data needs to be typed: the dimensionality of the process is fixed in advance. This BallTree implementation can not work on 3D and above data (although it is a one-liner fix).

@@ -57,6 +57,9 @@ class Node:
         self.axis = axis
         self.dimensionality = data.shape[-1]
 
+        if len(self.data) == 0:
+            raise ValueError('Empty data')
+        
         # Stores indices of each data point
         if indices is None:
             self.indices = np.arange(len(data))
@@ -145,8 +148,8 @@ class Node:
         """
         if X.ndim > 1:
             raise ValueError("query_radius only works on single query point.")
-        if len(X) != 2:
-            raise ValueError("Query point must be two-dimensional")
+        if X.shape[-1] != self.dimensionality:
+            raise ValueError("Tree and query dimensionality do not match")
         # Initialize empty list of int64
         # Needs to be typed
         buffer = [0][:0]

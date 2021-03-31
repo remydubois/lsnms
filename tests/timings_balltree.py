@@ -15,11 +15,12 @@ def test_tree_query_timing():
     ns = np.arange(1000, 200000, 10000)
     ts = []
     naive_ts = []
+    leaf_size = 64
     repeats = 100
     for n in ns:
         data = np.random.uniform(0, 1000, (n, 2))
-        sk_tree = skBT(data, leaf_size=16)
-        tree = BallTree(data, leaf_size=16)
+        sk_tree = skBT(data, leaf_size=leaf_size)
+        tree = BallTree(data, leaf_size=int(leaf_size * 0.67))
         _ = tree.query_radius(data[0], 200.0)
         timer = Timer(lambda: tree.query_radius(data[0], 100.0))
         ts.append(timer.timeit(number=repeats) / repeats * 1000)
@@ -42,13 +43,14 @@ def test_tree_building_timing():
 
     ns = np.arange(1000, 300000, 25000)
     ts = []
+    leaf_size = 64
     naive_ts = []
     for n in ns:
         data = np.random.uniform(0, n, (n, 2))
         _ = BallTree(data, 16)
-        timer = Timer(lambda: BallTree(data, 16))
+        timer = Timer(lambda: BallTree(data, leaf_size))
         ts.append(timer.timeit(number=5) / 5)
-        naive_timer = Timer(lambda: skBT(data, 16))
+        naive_timer = Timer(lambda: skBT(data, int(leaf_size * 0.67)))
         naive_ts.append(naive_timer.timeit(5) / 5)
 
     with plt.xkcd():
