@@ -11,6 +11,10 @@ This project becomes useful in the case of very high dimensional images data, wh
 ## Installation
 This project is fully installable with pip:
 ```
+pip install lsnms
+```
+or by cloning this repo
+```
 git clone https://github.com/remydubois/lsnms
 cd lsnms/
 pip install -e .
