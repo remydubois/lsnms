@@ -188,7 +188,7 @@ class Node:
 node_type.define(Node.class_type.instance_type)
 
 
-@njit
+@njit(fastmath=True)
 def build(current):
     """
     Reccursive building process.
@@ -208,7 +208,7 @@ def build(current):
         build(current.right)
 
 
-@njit
+@njit(fastmath=True)
 def query_radius(node, X, max_radius, buffer, dist_LB=0.0, is_root=True):
     """
     This function should not be used as-is: jitted-class methods can not be recursive.
@@ -263,7 +263,7 @@ def query_radius(node, X, max_radius, buffer, dist_LB=0.0, is_root=True):
             query_radius(node.left, X, max_radius, buffer, left_LB, False)
 
 
-@njit
+@njit(fastmath=True)
 def intersect(
     node, X, indices_buffer, intersections_buffer, inter_UB=1.0, is_root=True, min_area=0.0
 ):
@@ -296,7 +296,7 @@ def intersect(
         inter_UB = intersection(X, node.bbox)
 
     # if query is outside the radius, then trim this node out
-    if inter_UB == 0.0:
+    if inter_UB <= min_area:
         return
 
     # If it's a leaf: check points inside
@@ -313,7 +313,6 @@ def intersect(
     else:
         left_UB = intersection(X, node.left.bbox)
         right_UB = intersection(X, node.right.bbox)
-
         if left_UB > right_UB:
             intersect(node.left, X, indices_buffer, intersections_buffer, left_UB, False, min_area)
             intersect(

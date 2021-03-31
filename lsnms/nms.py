@@ -101,7 +101,8 @@ def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-
     return np.array(keep)
 
 
-@njit
+# import time
+@njit(fastmath=True)
 def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, tree_leaf_size=128):
     """
     Regular NMS.
@@ -152,8 +153,10 @@ def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, tree_leaf_
         w = np.where(scores > score_threshold)
         boxes = boxes[w]
         scores = scores[w]
+    # st = time.time()
     tree = BoxTree(boxes, tree_leaf_size)
-
+    # buildt = time.time() - st
+ 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
 
@@ -161,14 +164,19 @@ def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, tree_leaf_
     order = np.argsort(scores)[::-1]
     # Create a mask to keep track of boxes which have alread been visited
     to_consider = np.full(len(boxes), True)
+    # s = 0
+    # deltat = 0.
     for current_idx in order:
         # If already visited or discarded
         if not to_consider[current_idx]:
             continue
 
         boxA = boxes[current_idx]
-
+        # print(to_consider.sum())
+        # st = time.time()
         indices, intersections = tree.intersect(boxA)
+        # deltat += time.time() - st
+        # s += 1
 
         for query_idx, inter in zip(indices, intersections):
             if not to_consider[query_idx]:
@@ -178,38 +186,68 @@ def sparse_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, tree_leaf_
     
         keep.append(current_idx)
         to_consider[current_idx] = False
-
+    # print(f'buildtime {(buildt * 1000):.2f}; , {s}, steps for, {len(boxes)}, boxes, cumulated query time (ms), {deltat * 1000:.2f}, average (us), {deltat*1.e6/s:.2f}')
     return np.array(keep)
 
 
-@njit
+# @njit
+# def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
+#     """
+#     Naive NMS, for timing comparisons only.
+#     """
+#     keep = []
+
+#     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+
+#     # n_kept = 0
+#     order = [i for i in np.argsort(scores, kind="quicksort")[::-1]]
+#     while len(order):
+#         current_idx = order.pop(0)
+
+#         keep.append(current_idx)
+#         # n_kept += 1
+
+#         # Mutate in place the indices list
+#         n = 0
+#         for _ in range(len(order)):
+#             inter = intersection(boxes[current_idx], boxes[order[n]])
+#             sc = inter / (areas[current_idx] + areas[order[n]] - inter)
+#             if sc > iou_threshold:
+#                 # If pop, no need to shift the index to the next position
+#                 # Since popping will naturally shift the values
+#                 order.pop(n)
+#             else:
+#                 # If no pop, then shift to the next box
+#                 n += 1
+
+#     return keep
+
+
+@njit(fastmath=True)
 def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
     """
     Naive NMS, for timing comparisons only.
     """
-    keep = np.empty(len(boxes), dtype=np.int64)
+    # keep = np.empty(len(boxes), dtype=np.int64)
+    keep = []
 
     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-    n_kept = 0
-    order = [i for i in np.argsort(scores, kind="quicksort")[::-1]]
-    while len(order):
-        current_idx = order.pop(0)
+    # n_kept = 0
+    suppressed = np.full(len(scores), False)
+    order = np.argsort(scores, kind="quicksort")[::-1]
+    for i in range(len(boxes)):
+        if suppressed[i]:
+            continue
+        current_idx = order[i]
 
-        keep[n_kept] = current_idx
-        n_kept += 1
+        keep.append(current_idx)
 
-        # Mutate in place the indices list
-        n = 0
-        for _ in range(len(order)):
-            inter = intersection(boxes[current_idx], boxes[order[n]])
-            sc = inter / (areas[current_idx] + areas[order[n]] - inter)
-            if sc > iou_threshold:
-                # If pop, no need to shift the index to the next position
-                # Since popping will naturally shift the values
-                order.pop(n)
-            else:
-                # If no pop, then shift to the next box
-                n += 1
+        for j in range(i, len(order), 1):
+            if suppressed[j]:
+                continue
+            inter = intersection(boxes[current_idx], boxes[order[j]])
+            sc = inter / (areas[current_idx] + areas[order[j]] - inter)
+            suppressed[j] = sc > iou_threshold
 
-    return keep[:n_kept]
+    return keep

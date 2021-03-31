@@ -20,7 +20,7 @@ def area(box):
     return (box[..., 2] - box[..., 0]) * (box[..., 3] - box[..., 1])
 
 
-@njit
+@njit(fastmath=True)
 def intersection(boxA, boxB):
     """
     Compute area of intersection of two boxes
@@ -39,15 +39,15 @@ def intersection(boxA, boxB):
     """
     xA = max(boxA[..., 0], boxB[..., 0])
     xB = min(boxA[..., 2], boxB[..., 2])
-    dx = max(xB - xA, 0.0)
-    # if dx <= 0:
-    #     return 0.0
+    dx = xB - xA
+    if dx <= 0:
+        return 0.0
 
     yA = max(boxA[..., 1], boxB[..., 1])
     yB = min(boxA[..., 3], boxB[..., 3])
-    dy = max(yB - yA, 0.0)
-    # if dy <= 0.0:
-    #     return 0.0
+    dy = yB - yA
+    if dy <= 0.0:
+        return 0.0
 
     # compute the area of intersection rectangle
     return dx * dy
@@ -157,7 +157,7 @@ def split_along_axis(data, axis):
     Tuple[np.array]
         Left data point indices, right data point indices
     """
-    # indices = np.arange(len(data))
+    indices = np.arange(len(data))
     # cap = np.median(data[:, axis])
     # mask = data[:, axis] <= cap
     # n_left = mask.sum()
@@ -169,9 +169,21 @@ def split_along_axis(data, axis):
     #     left = indices[mask]
     #     right = indices[np.logical_not(mask)]
     # return left, right
-    left, right = argpartition(data[:, axis])
+    # left, right = argpartition(data[:, axis])
+    # return left, right
+    counts, bins = np.histogram(data[:, axis])
+    bins = (bins[1:] + bins[:-1]) / 2
+    cap = bins[counts.argmin()]
+    mask = data[:, axis] <= cap
+    n_left = mask.sum()
+    # Account for the case where all positions along this axis are equal: split in the middle
+    if n_left == len(data) or n_left == 0:
+        left = indices[: len(indices) // 2]
+        right = indices[len(indices) // 2 :]
+    else:
+        left = indices[mask]
+        right = indices[np.logical_not(mask)]
     return left, right
-
 
 @njit
 def distance_to_hyperplan(x, box):
