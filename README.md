@@ -1,6 +1,6 @@
 # LSNMS
 Speeding up Non Maximum Suppresion ran on very large images by a several folds factor, using a sparse implementation of NMS.  
-This project describes a "sparse" implementation of Non Maximum Suppression, useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
+This project becomes useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
   <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/timings_medium_image.png?token=AEJMSVNEIBF2PMWIVASMKATAMIKHS" width="700" />
