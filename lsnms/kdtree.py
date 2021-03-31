@@ -58,8 +58,8 @@ class Node:
         self.dimensionality = data.shape[-1]
 
         if len(self.data) == 0:
-            raise ValueError('Empty data')
-        
+            raise ValueError("Empty data")
+
         # Stores indices of each data point
         if indices is None:
             self.indices = np.arange(len(data))
