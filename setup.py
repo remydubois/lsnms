@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="lsnms",
-    version="0.1.0",
+    version="0.1.1",
     description="Large Scale Non Maximum Suppression",
     author="Rémy Dubois",
     install_requires=["numpy==1.19.5", "numba==0.53.1"],
