@@ -4,6 +4,7 @@ Changelog
 
 (unreleased)
 ------------
+- - added changelog, upgraded to version 0.1.1. [Rémy Dubois]
 - - black. [Rémy Dubois]
 - - improved the node splitting method - Updated the runtimes comparison
   versus sklearn - fixed little typos in the readme - fixed typechecks
