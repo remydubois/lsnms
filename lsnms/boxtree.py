@@ -45,10 +45,12 @@ class Node:
     node.build()
     ```
 
-    For convenience, a wrapper `KDTree` class was implemented, encapsulating this process:
+    For convenience, a wrapper `BoxTree` class was implemented, encapsulating this process:
     ```
-    tree = KDTree(data)
+    tree = BoxTree(data)
     tree.query_radius(...)
+    # or
+    tree.intersect(box_of_interest)
     ```
     """
 
@@ -165,7 +167,22 @@ class Node:
         return np.array(buffer)
 
     def intersect(self, X, min_area=0.0):
+        """
+        Returns, among the indexed bboxes, the ones intersecting with more than `min_area`
+        with the given bbox. The search is depth-first and is of log complexity.
 
+        Parameters
+        ----------
+        X : [type]
+            [description]
+        min_area : float, optional
+            [description], by default 0.0
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
         indices_buffer = [0][:0]
         intersections_buffer = [0.0][:0]
 

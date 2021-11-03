@@ -72,5 +72,5 @@ def test_timing_boxtree():
         ax.set_title("sklearn versus LSNMS tree radius query timing")
         plt.subplots_adjust(left=0.18, bottom=0.15, right=0.95, top=0.9)
         ax.legend()
-        ax.set_yscale('log')
+        # ax.set_yscale('log')
         f.show()
