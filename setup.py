@@ -15,6 +15,9 @@ setup(
         "Object detection",
         "Large scale processing",
     ],
-    classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering"],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering",
+    ],
     packages=find_packages(exclude=("tests")),
 )

@@ -25,7 +25,11 @@ def test_speed_nms():
 
         if n == ns[0]:
             _ = nms(
-                boxes[:5], scores[:5], iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-1
+                boxes[:5],
+                scores[:5],
+                iou_threshold=0.5,
+                score_threshold=0.1,
+                cutoff_distance=-1,
             )
             _ = nms(
                 boxes[:50],
@@ -45,7 +49,13 @@ def test_speed_nms():
             )
 
         timer1 = Timer(
-            lambda: nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-1)
+            lambda: nms(
+                boxes,
+                scores,
+                iou_threshold=0.5,
+                score_threshold=0.1,
+                cutoff_distance=-1,
+            )
         )
         timer2 = Timer(
             lambda: nms(

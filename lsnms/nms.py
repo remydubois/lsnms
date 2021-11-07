@@ -5,8 +5,15 @@ from lsnms.kdtree import KDTree
 from lsnms.util import area, intersection
 
 
-@njit
-def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-1, tree="kdtree"):
+@njit(cache=False)
+def nms(
+    boxes,
+    scores,
+    iou_threshold=0.5,
+    score_threshold=0.0,
+    cutoff_distance=-1,
+    tree="kdtree",
+):
     """
     Regular NMS.
     For a given bbox, it will greedily discard all the other overlapping bboxes with lower score.
@@ -74,6 +81,10 @@ def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-
         if not to_consider[current_idx]:
             continue
 
+        # If score is already below threshold then break
+        if scores[current_idx] < score_threshold:
+            break
+
         boxA = boxes[current_idx]
 
         # If a cutoff distance was specified, query neighbors within this distance
@@ -101,7 +112,7 @@ def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=-
 
 
 @njit
-def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
+def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
     """
     Naive NMS, for timing comparisons only.
     """
@@ -116,6 +127,10 @@ def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
 
         keep[n_kept] = current_idx
         n_kept += 1
+
+        # If score is already below threshold then break
+        if scores[current_idx] < score_threshold:
+            break
 
         # Mutate in place the indices list
         n = 0
