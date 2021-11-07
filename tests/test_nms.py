@@ -1,10 +1,8 @@
 import numpy as np
 import torch
-from lsnms import nms, wbc
-from lsnms.balltree import BallTree
+from lsnms import nms
+from lsnms.nms import naive_nms
 from torchvision.ops import boxes as box_ops
-from multiprocessing import Process
-from timeit import Timer
 
 
 def test_balltree_nms():
@@ -41,3 +39,16 @@ def test_kdtree_nms():
     k3 = nms(boxes, scores, 0.5, 0.1, 64, tree="kdtree")
 
     assert np.allclose(k1, k2) and np.allclose(k1, k3)
+
+def test_naive_nms():
+    topleft = np.random.uniform(0.0, high=1_000, size=(10_000, 2))
+    wh = np.random.uniform(15, 45, size=topleft.shape)
+    boxes = np.concatenate([topleft, topleft + wh], axis=1)
+    scores = np.random.uniform(0.1, 1.0, size=len(topleft))
+
+    k1 = box_ops.nms(torch.tensor(boxes), torch.tensor(scores), 0.5).numpy()
+
+    # Compare naive NMS
+    k2 = naive_nms(boxes, scores, 0.5)
+
+    assert np.allclose(k1, k2) and np.allclose(k1, k2)
