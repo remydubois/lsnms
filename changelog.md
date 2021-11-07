@@ -1,5 +1,6 @@
 Changelog
 =========
+- Fixed typo in BallTree (missing dimensionality argument, not used in algorithm but for sanity check in query)
 
 
 (unreleased)
