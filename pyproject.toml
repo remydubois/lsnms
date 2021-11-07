@@ -12,7 +12,7 @@ classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Enginee
 [tool.poetry.dependencies]
 python = ">=3.7,<3.10"
 numpy = "1.19.5"
-numba = "0.53.1"
+numba = "0.54.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "6.2.5"

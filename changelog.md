@@ -1,6 +1,11 @@
 Changelog
 =========
+
+
+Patch 0.1.1
+------------
 - Fixed typo in BallTree (missing dimensionality argument, not used in algorithm but for sanity check in query)
+- Updated Numba to 0.54.1
 
 
 (unreleased)
