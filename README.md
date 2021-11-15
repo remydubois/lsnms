@@ -1,6 +1,6 @@
 # LSNMS
 Speeding up Non Maximum Suppresion ran on very large images by a several folds factor, using a sparse implementation of NMS.  
-This project describes a "sparse" implementation of Non Maximum Suppression, useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
+This project becomes useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
   <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/timings_medium_image.png?token=AEJMSVNEIBF2PMWIVASMKATAMIKHS" width="700" />
@@ -10,6 +10,10 @@ This project describes a "sparse" implementation of Non Maximum Suppression, use
 
 ## Installation
 This project is fully installable with pip:
+```
+pip install lsnms
+```
+or by cloning this repo
 ```
 git clone https://github.com/remydubois/lsnms
 cd lsnms/
@@ -121,14 +125,14 @@ tree = BallTree(data, leaf_size=16)
 
 
 ## Performances
-The BallTree implemented in this repo was timed against scikit-learn's `neighbors` one.
+The BallTree implemented in this repo was timed against scikit-learn's `neighbors` one. Note that runtimes are not fair to compare since sklearn implementation allows for node to contain
+between `leaf_size` and `2 * leaf_size` datapoints. To account for this, I timed my implementation against sklearn tree with `int(0.67 * leaf_size)`  as `leaf_size`.
 ### Tree building time
 <p float="center">
   <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/building_timings.png" width="700" />
   <figcaption>Trees building times comparison</figcaption></center>
 </p>
 
-The (minor) slow down observed against sklearn implementation is probably related to the node-splitting process. I used the median cutoff (compute median, then assign datapoints depending on their value above or below median) but it is suboptimal: a proper pivot algorithm could easily be implemented.
 
 ### Tree query time
 <p float="center">
@@ -136,7 +140,4 @@ The (minor) slow down observed against sklearn implementation is probably relate
   <figcaption>Trees query times comparison (single query, radius=100) in a 1000x1000 space</figcaption></center>
 </p>
 
-Query time are somehow identical. However, my implementation does seem to not scale as well as scikit-learn's one, a minor slowdown could be observed for extremely large datasets (million-ish data points).
-
-### Warnings
-Because input data needs to be typed: the dimensionality of the process is fixed in advance. This BallTree implementation can not work on 3D and above data (although it is a one-liner fix).
+Query time are somehow identical.

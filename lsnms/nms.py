@@ -57,6 +57,10 @@ def _nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
         if not to_consider[current_idx]:
             continue
 
+        # If score is already below threshold then break
+        if scores[current_idx] < score_threshold:
+            break
+
         boxA = boxes[current_idx]
 
         # Query the overlapping boxes and return their intersection
@@ -100,7 +104,7 @@ def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
 
     # Run NMS
     keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold)
-    
+
     return keep
 
 

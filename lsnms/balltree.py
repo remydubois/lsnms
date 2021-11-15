@@ -16,6 +16,7 @@ specs = OrderedDict()
 node_type = deferred_type()
 specs["data"] = float64[:, :]
 specs["centroid"] = float64[:]
+specs["dimensionality"] = int64
 specs["indices"] = optional(int64[:])
 specs["radius"] = float64
 specs["is_leaf"] = boolean
@@ -53,6 +54,10 @@ class Node:
     def __init__(self, data, leaf_size=16, indices=None):
         # Stores the data
         self.data = data
+        self.dimensionality = data.shape[-1]
+
+        if len(self.data) == 0:
+            raise ValueError("Empty data")
 
         # Stores indices of each data point
         if indices is None:
@@ -139,8 +144,8 @@ class Node:
         """
         if X.ndim > 1:
             raise ValueError("query_radius only works on single query point.")
-        if len(X) != 2:
-            raise ValueError("Query point must be two-dimensional")
+        if X.shape[-1] != self.dimensionality:
+            raise ValueError("Tree and query dimensionality do not match")
         # Initialize empty list of int64
         # Needs to be typed
         buffer = [0][:0]
