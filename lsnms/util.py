@@ -172,6 +172,7 @@ def split_along_axis(data, axis):
     #     right = indices[np.logical_not(mask)]
     # return left, right
 
+
 @njit
 def distance_to_hyperplan(x, box):
     """
@@ -313,3 +314,50 @@ def median_argsplit(arry):
     left = indices[:k]
     right = indices[k:]
     return left, right
+
+
+def check_correct_arrays(boxes: np.array, scores: np.array):
+    """
+    Check arrays characteristics: dtype dimensionality and shape
+    """
+    # Check dtypes:
+    if not boxes.dtype == "float64":
+        raise ValueError(f"Boxes should a float64 array. Received {boxes.dtype}")
+    if not scores.dtype == "float64":
+        raise ValueError(f"Scores should a float64 array. Received {scores.dtype}")
+
+    # Check shapes
+    if boxes.ndim != 2 or boxes.shape[-1] != 4:
+        raise ValueError(
+            f"Boxes should be of shape (n_boxes, 4). Received object of shape {boxes.shape}."
+        )
+    if boxes.ndim != 1:
+        raise ValueError(
+            f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
+        )
+
+    # Check that boxes are in correct orientation
+    deltas = boxes[:, 2:] - boxes[:, :2]
+    if not deltas.min() > 0:
+        raise ValueError("Boxes should be encoded [x1, y1, x2, y2] with x1 < x2 & y1 < y2")
+
+
+def check_correct_input(
+    boxes: np.array, scores: np.array, iou_threshold: float, score_threshold: float
+):
+    """
+    Checks input validity: shape, dtype, dimensionality, and boundary values.
+    """
+
+    boxes = np.asarray(boxes, dtype=np.float64)
+    scores = np.asarray(scores, dtype=np.float64)
+
+    check_correct_arrays(boxes, scores)
+
+    # Check boundary values
+    if iou_threshold < 0.0 or iou_threshold > 1.0:
+        raise ValueError(f"IoU threshold should be between 0. and 1. Received {iou_threshold}.")
+    if score_threshold < 0.0 or score_threshold > 1.0:
+        raise ValueError(f"IoU threshold should be between 0. and 1. Received {score_threshold}.")
+
+    return boxes, scores
