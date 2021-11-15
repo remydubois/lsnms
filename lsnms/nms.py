@@ -1,43 +1,22 @@
+from typing import Optional
+import warnings
 from numba import njit
 import numpy as np
-from lsnms.balltree import BallTree
 from lsnms.boxtree import BoxTree
-from lsnms.kdtree import KDTree
-from lsnms.util import area, intersection
+from lsnms.util import area, intersection, check_correct_input
 
 
 @njit(cache=True)
-def _nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
+def _nms(
+    boxes: np.array,
+    scores: np.array,
+    iou_threshold: float = 0.5,
+    score_threshold: float = 0.0,
+) -> np.array:
     """
-    Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
-    This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
-    The overlapping boxes are queried using a R-tree, ensuring a log (average case) complexity.
-
-    Note that this implementation could be further optimized:
-    - Memory management is quite poor: several back and forth list-to-numpy conversions happen
-    - Some multi treading could be injected when comparing far appart clusters
-
-    Parameters
-    ----------
-    boxes : np.array
-        Array of boxes, in format (x0, y0, x1, y1) with x1 >= x0, y1 >= y0
-    scores : np.array
-        One-dimensional array of confidence scores.
-    iou_threshold : float, optional
-        Threshold from which boxes are considered to overlap, and end up aggregated, by default 0.5
-        The higher the lower the effect of this operation.
-
-    Returns
-    -------
-    list
-        List of indices to keep, sorted by decreasing score confidence
+    See `lsnms.nms` docstring.
     """
     keep = []
-
-    # Check that boxes are in correct orientation
-    deltas = boxes[:, 2:] - boxes[:, :2]
-    if not deltas.min() > 0:
-        raise ValueError("Boxes should be encoded [x1, y1, x2, y2] with x1 < x2 & y1 < y2")
 
     # Discard boxes below score threshold right now to avoid building the tree on useless boxes
     boxes = boxes[scores > score_threshold]
@@ -66,11 +45,10 @@ def _nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
         # Query the overlapping boxes and return their intersection
         query, query_intersections = boxtree.intersect(boxA, 0.0)
 
-        for k, query_idx in enumerate(query):
+        for query_idx, overlap in zip(query, query_intersections):
             if not to_consider[query_idx]:
                 continue
-            inter = query_intersections[k]
-            sc = inter / (areas[current_idx] + areas[query_idx] - inter)
+            sc = overlap / (areas[current_idx] + areas[query_idx] - overlap)
             to_consider[query_idx] = sc < iou_threshold
 
         # Add the current box
@@ -80,28 +58,57 @@ def _nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
     return np.array(keep)
 
 
-def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
+def nms(
+    boxes: np.array,
+    scores: np.array,
+    iou_threshold: float = 0.5,
+    score_threshold: float = 0.0,
+    cutoff_distance: Optional[int] = None,
+    tree: Optional[str] = None,
+) -> np.array:
+    """
+    Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
+    This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
+    The overlapping boxes are queried using a R-tree, ensuring a log (average case) complexity.
 
-    # Convert dtype. No copy if not needed.
-    boxes = np.asarray(boxes, dtype=np.float64)
-    scores = np.asarray(scores, dtype=np.float64)
+    Note that this implementation could be further optimized:
+    - Memory management is quite poor: several back and forth list-to-numpy conversions happen
+    - Some multi treading could be injected when comparing far appart clusters
 
-    # Check shapes
-    if boxes.ndim != 2 or boxes.shape[-1] != 4:
-        raise ValueError(
-            f"Boxes should be of shape (n_boxes, 4). Received object of shape {boxes.shape}."
+    Parameters
+    ----------
+    boxes : np.array
+        Array of boxes, in format (x0, y0, x1, y1) with x1 >= x0, y1 >= y0
+    scores : np.array
+        One-dimensional array of confidence scores. Note that in the case of multiclass,
+        this function must be applied class-wise.
+    iou_threshold : float, optional
+        Threshold used to consider two boxes to be overlapping, by default 0.5
+    score_threshold : float, optional
+        Threshold from which boxes are discarded, by default 0.0
+    cutoff_distance: int, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
+        which is parameter free.
+    tree: str, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, the tree used is a R-Tree.
+
+    Returns
+    -------
+    np.array
+        Indices of boxes kept, in decreasing order of confidence score.
+    """
+    if cutoff_distance is not None or tree is not None:
+        warnings.warn(
+            "Both `cutoff_distance` and `tree` are deprecated and effect-less from version"
+            "0.2.X, since R-Tree is used by default to query overlapping boxes."
         )
-    if boxes.ndim != 1:
-        raise ValueError(
-            f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
-        )
 
-    # Check boundary values
-    if iou_threshold < 0.0 or iou_threshold > 1.0:
-        raise ValueError(f"IoU threshold should be between 0. and 1. Received {iou_threshold}.")
-    if score_threshold < 0.0 or score_threshold > 1.0:
-        raise ValueError(f"IoU threshold should be between 0. and 1. Received {score_threshold}.")
-
+    # Convert dtype, check shapes, dimensionality, and boundary values.
+    boxes, scores = check_correct_input(
+        boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
+    )
     # Run NMS
     keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold)
 
@@ -109,11 +116,36 @@ def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
 
 
 @njit(fastmath=True)
-def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
+def naive_nms(
+    boxes: np.array, scores: np.array, iou_threshold: float = 0.5, score_threshold: float = 0.0
+) -> np.array:
     """
-    Naive NMS, for timing comparisons only.
+    Naive nms, for timing and comparisons only.
+
+    Parameters
+    ----------
+    boxes : np.array
+        Array of boxes, in format (x0, y0, x1, y1) with x1 >= x0, y1 >= y0
+    scores : np.array
+        One-dimensional array of confidence scores. Note that in the case of multiclass,
+        this function must be applied class-wise.
+    iou_threshold : float, optional
+        Threshold used to consider two boxes to be overlapping, by default 0.5
+    score_threshold : float, optional
+        Threshold from which boxes are discarded, by default 0.0
+    cutoff_distance: int, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
+        which is parameter free.
+    tree: str, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, the tree used is a R-Tree.
+
+    Returns
+    -------
+    np.array
+        Indices of boxes kept, in decreasing order of confidence score.
     """
-    # keep = np.empty(len(boxes), dtype=np.int64)
     keep = []
 
     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
@@ -125,6 +157,9 @@ def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
         if suppressed[i]:
             continue
         current_idx = order[i]
+        
+        if scores[current_idx] < score_threshold:
+            break
 
         keep.append(current_idx)
 
@@ -134,5 +169,7 @@ def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1):
             inter = intersection(boxes[current_idx], boxes[order[j]])
             sc = inter / (areas[current_idx] + areas[order[j]] - inter)
             suppressed[j] = sc > iou_threshold
+
+    keep = np.array(keep)
 
     return keep
