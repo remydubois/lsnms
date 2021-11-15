@@ -7,7 +7,7 @@ from lsnms.util import area, intersection
 
 
 @njit(cache=True)
-def nms(boxes, scores, iou_threshold=0.5):
+def _nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
     """
     Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
     This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
@@ -38,6 +38,9 @@ def nms(boxes, scores, iou_threshold=0.5):
     deltas = boxes[:, 2:] - boxes[:, :2]
     if not deltas.min() > 0:
         raise ValueError("Boxes should be encoded [x1, y1, x2, y2] with x1 < x2 & y1 < y2")
+
+    # Discard boxes below score threshold right now to avoid building the tree on useless boxes
+    boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
     boxtree = BoxTree(boxes, 32)
@@ -71,6 +74,34 @@ def nms(boxes, scores, iou_threshold=0.5):
         to_consider[current_idx] = False
 
     return np.array(keep)
+
+
+def nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
+
+    # Convert dtype. No copy if not needed.
+    boxes = np.asarray(boxes, dtype=np.float64)
+    scores = np.asarray(scores, dtype=np.float64)
+
+    # Check shapes
+    if boxes.ndim != 2 or boxes.shape[-1] != 4:
+        raise ValueError(
+            f"Boxes should be of shape (n_boxes, 4). Received object of shape {boxes.shape}."
+        )
+    if boxes.ndim != 1:
+        raise ValueError(
+            f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
+        )
+
+    # Check boundary values
+    if iou_threshold < 0.0 or iou_threshold > 1.0:
+        raise ValueError(f"IoU threshold should be between 0. and 1. Received {iou_threshold}.")
+    if score_threshold < 0.0 or score_threshold > 1.0:
+        raise ValueError(f"IoU threshold should be between 0. and 1. Received {score_threshold}.")
+
+    # Run NMS
+    keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold)
+    
+    return keep
 
 
 @njit(fastmath=True)
