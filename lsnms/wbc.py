@@ -11,7 +11,7 @@ def _wbc(
     boxes: np.array,
     scores: np.array,
     iou_threshold: float = 0.5,
-    score_threshold: float = 0.1,
+    score_threshold: float = 0.,
     iou_reweight: bool = False,
 ):
     """
@@ -29,7 +29,7 @@ def _wbc(
     boxes = boxes[scores > score_threshold]
 
     # Index boxes
-    tree = RTree(boxes)
+    tree = RTree(boxes, 32)
 
     # Sort boxes by decreasing confidence scores
     order = np.argsort(scores)[::-1]
@@ -100,6 +100,7 @@ def wbc(
     scores: np.array,
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
+    iou_reweight: bool = False,
     cutoff_distance: Optional[int] = None,
     tree: Optional[str] = None,
 ) -> np.array:
@@ -160,7 +161,13 @@ def wbc(
     boxes, scores = check_correct_input(
         boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
     )
-    # Run NMS
-    keep = _wbc(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold)
+    # Run WBC
+    keep = _wbc(
+        boxes,
+        scores,
+        iou_threshold=iou_threshold,
+        score_threshold=score_threshold,
+        iou_reweight=iou_reweight,
+    )
 
     return keep

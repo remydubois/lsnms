@@ -52,33 +52,7 @@ def test_kd_wbc():
         boxes,
         scores,
         iou_threshold=0.5,
-        score_threshold=0.1,
-        cutoff_distance=64,
-        tree="kdtree",
-    )
-
-    # put the boxes in the same order to be able to match to the the pre-computed centroids
-    sorted_indices = np.argsort(wbc_boxes[:, 0])
-    wbc_boxes = wbc_boxes[sorted_indices]
-    wbc_scores = wbc_scores[sorted_indices]
-
-    # Compare
-    np.testing.assert_allclose(wbc_boxes, final_cluster_boxes)
-    np.testing.assert_allclose(wbc_scores, final_cluster_scores)
-
-
-def test_ball_wbc():
-
-    boxes, scores, final_cluster_boxes, final_cluster_scores = generate_data()
-
-    # Apply WBC
-    wbc_boxes, wbc_scores, _ = wbc(
-        boxes,
-        scores,
-        iou_threshold=0.5,
-        score_threshold=0.1,
-        cutoff_distance=64,
-        tree="balltree",
+        iou_reweight=False
     )
 
     # put the boxes in the same order to be able to match to the the pre-computed centroids

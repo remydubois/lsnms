@@ -23,12 +23,23 @@ def test_rtree_nms():
     # Compare against torch
     k1 = box_ops.nms(torch.tensor(boxes), torch.tensor(scores), 0.5).numpy()
 
+    # Compare sparse NMS
+    k2 = nms(boxes, scores, 0.5, 0.0)
+
+    assert np.allclose(k1, k2)
+
+
+def test_rtree_nms():
+
+    boxes, scores = datagen()
+
+    # Compare against torch
+    k1 = box_ops.nms(torch.tensor(boxes), torch.tensor(scores), 0.5).numpy()
+
     # Compare naive NMS
     k2 = naive_nms(boxes, scores, 0.5, 0.0)
-    # Compare naive NMS
-    k3 = nms(boxes, scores, 0.5, 0.0)
 
-    assert np.allclose(k1, k2) and np.allclose(k1, k3)
+    assert np.allclose(k1, k2)
 
 
 def test_boxes_shape():
