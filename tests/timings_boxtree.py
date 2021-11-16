@@ -7,7 +7,7 @@ import numpy as np
 from lsnms import nms
 from lsnms.nms import naive_nms
 
-from lsnms.boxtree import RTree
+from lsnms.rtree import RTree
 from sklearn.neighbors import KDTree as skKDT
 from torchvision.ops import boxes as box_ops
 from tqdm import tqdm
@@ -73,7 +73,7 @@ def test_speed_nms():
 
     with plt.xkcd():
         f, ax = plt.subplots(figsize=(8, 8))
-        ax.plot(ns, timings["lsnms"], label="lsnms (boxtree)", marker="o")
+        ax.plot(ns, timings["lsnms"], label="lsnms (rtree)", marker="o")
         ax.plot(ns, timings["torch"], label="torch nms", marker="o")
         # ax.plot(ns, timings['naive'], label="naive greedy nms", marker="o")
 

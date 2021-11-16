@@ -2,7 +2,7 @@ from typing import Optional
 import warnings
 from numba import njit
 import numpy as np
-from lsnms.boxtree import RTree
+from lsnms.rtree import RTree
 from lsnms.util import area, intersection, check_correct_input
 
 
@@ -22,7 +22,7 @@ def _nms(
     boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
-    boxtree = RTree(boxes, 32)
+    rtree = RTree(boxes, 32)
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
@@ -43,7 +43,7 @@ def _nms(
         boxA = boxes[current_idx]
 
         # Query the overlapping boxes and return their intersection
-        query, query_intersections = boxtree.intersect(boxA, 0.0)
+        query, query_intersections = rtree.intersect(boxA, 0.0)
 
         for query_idx, overlap in zip(query, query_intersections):
             if not to_consider[query_idx]:

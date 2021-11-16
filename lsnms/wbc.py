@@ -2,7 +2,7 @@ from numba import njit
 from typing import Optional
 import numpy as np
 from lsnms.util import area, check_correct_input
-from lsnms.boxtree import RTree
+from lsnms.rtree import RTree
 import warnings
 
 

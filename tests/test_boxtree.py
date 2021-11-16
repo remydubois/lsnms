@@ -1,5 +1,5 @@
 import numpy as np
-from lsnms.boxtree import RTree
+from lsnms.rtree import RTree
 
 def intersection(boxA, boxB):
     xA = np.maximum(boxA[..., 0], boxB[..., 0])
