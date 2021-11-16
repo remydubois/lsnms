@@ -92,6 +92,12 @@ def time_tree_query(tree, box, n_repeats):
     return timer.timeit(number=n_repeats) / n_repeats * 1000
 
 
+def time_sktree_query(tree, box, n_repeats):
+    _ = tree.query_radius(box[None, :2], 64)
+    timer = Timer(lambda: tree.query_radius(box[None, :2], 64))
+    return timer.timeit(number=n_repeats) / n_repeats * 1000
+
+
 def time_naive_query(boxes, box, n_repeats):
     _ = intersection(boxes, box)
     timer = Timer(lambda: intersection(boxes, box))
@@ -106,14 +112,17 @@ def test_tree_query_timing():
     for n in ns:
         boxes, scores = generate_boxes(1_000, n)
         tree = RTree(boxes, leaf_size=32)
+        # sktree = skKDT(boxes[:, :2], 26)
 
         timings["linear"].append(time_naive_query(boxes, boxes[0], repeats))
         timings["tree"].append(time_tree_query(tree, boxes[0], repeats))
+        # timings["sktree"].append(time_sktree_query(sktree, boxes[0], repeats))
 
     with plt.xkcd():
         f, ax = plt.subplots(figsize=(8, 8))
         ax.plot(ns, timings["tree"], label="box tree", marker="o")
         ax.plot(ns, timings["linear"], label="linear", marker="o")
+        # ax.plot(ns, timings["sktree"], label="sklearn's kdtree indexed\non box corners", marker="o")
         ax.set_xlabel("Number of boxes to intersect with", c="k")
         ax.set_ylabel(f"Elapsed time (us) (mean of {repeats} runs)")
         ax.set_title("LSNMS box tree intersect vs naive intersect timing")
