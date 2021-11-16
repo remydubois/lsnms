@@ -43,7 +43,7 @@ def generate_data():
     return boxes, scores, final_cluster_boxes, final_cluster_scores
 
 
-def test_kd_wbc():
+def test_wbc():
 
     boxes, scores, final_cluster_boxes, final_cluster_scores = generate_data()
 

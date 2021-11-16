@@ -29,7 +29,7 @@ def test_rtree_nms():
     assert np.allclose(k1, k2)
 
 
-def test_rtree_nms():
+def test_naive_nms():
 
     boxes, scores = datagen()
 
@@ -62,3 +62,15 @@ def test_box_encoding():
     boxes[0, 0] = boxes[0, 2] + 1
     with pytest.raises(ValueError):
         nms(boxes, scores, 0.5, 0.1)
+
+
+def test_warning_dist_arg():
+    boxes, scores = datagen()
+    with pytest.warns(None):
+        nms(boxes, scores, 0.5, 0.1, cutoff_distance=64)
+
+
+def test_warning_tree_arg():
+    boxes, scores = datagen()
+    with pytest.warns(None):
+        nms(boxes, scores, 0.5, 0.1, tree="faketree")
