@@ -2,11 +2,11 @@ from typing import Optional
 import warnings
 from numba import njit
 import numpy as np
-from lsnms.boxtree import BoxTree
+from lsnms.boxtree import RTree
 from lsnms.util import area, intersection, check_correct_input
 
 
-@njit(cache=True)
+@njit(cache=False)
 def _nms(
     boxes: np.array,
     scores: np.array,
@@ -22,7 +22,7 @@ def _nms(
     boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
-    boxtree = BoxTree(boxes, 32)
+    boxtree = RTree(boxes, 32)
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)

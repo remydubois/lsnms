@@ -16,7 +16,7 @@ def datagen():
     return boxes, scores
 
 
-def test_balltree_nms():
+def test_rtree_nms():
 
     boxes, scores = datagen()
 
@@ -29,20 +29,6 @@ def test_balltree_nms():
     k3 = nms(boxes, scores, 0.5, 0.0)
 
     assert np.allclose(k1, k2) and np.allclose(k1, k3)
-
-
-def test_boxes_dtype():
-    boxes, scores = datagen()
-    boxes = boxes.astype(np.float32)
-    with pytest.raises(ValueError):
-        nms(boxes, scores, 0.5, 0.1)
-
-
-def test_scores_dtype():
-    boxes, scores = datagen()
-    scores = scores.astype(np.float32)
-    with pytest.raises(ValueError):
-        nms(boxes, scores, 0.5, 0.1)
 
 
 def test_boxes_shape():

@@ -220,6 +220,32 @@ def englobing_box(data):
         bounds.insert(2 * j + 1, data[:, j].max())
     return np.array(bounds)
 
+@njit
+def box_englobing_boxes(boxes):
+    """
+    Computes coordinates of the smallest bounding box containing all
+    the boxes.
+
+    Parameters
+    ----------
+    boxes : np.array
+        Boxes
+
+    Returns
+    -------
+    np.array
+        Bounding box in format  (x0, y0, x1, y1)
+    """
+    dim = boxes.shape[-1]
+    bounds = np.empty((dim, ))
+    for j in range(dim):
+        if j < dim // 2:
+            bounds[j] = boxes[:, j].min()
+        else:
+            bounds[j] = boxes[:, j].max()
+
+    return bounds
+
 
 @njit
 def _partition(A, low, high, indices):
@@ -331,7 +357,7 @@ def check_correct_arrays(boxes: np.array, scores: np.array):
         raise ValueError(
             f"Boxes should be of shape (n_boxes, 4). Received object of shape {boxes.shape}."
         )
-    if boxes.ndim != 1:
+    if scores.ndim != 1:
         raise ValueError(
             f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
         )
