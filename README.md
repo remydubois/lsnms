@@ -3,7 +3,7 @@ Speeding up Non Maximum Suppresion ran on very large images by a several folds f
 This project becomes useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
-  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/timings_medium_image.png?token=AEJMSVNEIBF2PMWIVASMKATAMIKHS" width="700" />
+  <center><img src="" width="700" />
   <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
 </p>
 
@@ -13,11 +13,11 @@ This project is fully installable with pip:
 ```
 pip install lsnms
 ```
-or by cloning this repo
+or by cloning this repo with poetry
 ```
 git clone https://github.com/remydubois/lsnms
 cd lsnms/
-pip install -e .
+poetry install
 ```
 Only dependencies are numpy and numba.
 
