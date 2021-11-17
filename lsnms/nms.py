@@ -1,73 +1,28 @@
+from typing import Optional
+import warnings
 from numba import njit
 import numpy as np
-from lsnms.balltree import BallTree
-from lsnms.kdtree import KDTree
-from lsnms.util import area, intersection
+from lsnms.rtree import RTree
+from lsnms.util import area, intersection, check_correct_input
 
 
 @njit(cache=False)
-def nms(
-    boxes,
-    scores,
-    iou_threshold=0.5,
-    score_threshold=0.0,
-    cutoff_distance=-1,
-    tree="kdtree",
-):
+def _nms(
+    boxes: np.array,
+    scores: np.array,
+    iou_threshold: float = 0.5,
+    score_threshold: float = 0.0,
+) -> np.array:
     """
-    Regular NMS.
-    For a given bbox, it will greedily discard all the other overlapping bboxes with lower score.
-    Note that this implementation allows some sparsity in the process, by only checking boxes
-    distant from less than `cutoff_distance`. See parameters for details.
-
-    Note that this implementation could be further optimized:
-    - Memory management is quite poor: several back and forth list-to-numpy conversions happen
-    - Some multi treading could be injected when comparing far appart clusters
-
-    Parameters
-    ----------
-    boxes : np.array
-        Array of boxes, in format (x0, y0, x1, y1) with x1 >= x0, y1 >= y0
-    scores : np.array
-        One-dimensional array of confidence scores.
-    iou_threshold : float, optional
-        Threshold from which boxes are considered to overlap, and end up aggregated, by default 0.5
-        The higher the lower the effect of this operation.
-    score_threshold : float, optional
-        Score from which to discard instance based on this confidence score, by default 0.1
-    cutoff_distance : int, optional
-        Distance from which boxes are considered too far appart to be considered, by default -1
-        If two boxes are distant of more than this value, the iou score will not even be computed.
-        Setting a positive value to this parameter will result in:
-            - creating a BallTree indexed on top-left corner of bounding boxes
-            - at each trimming step, the tree will be queried to return all the neighbors distant
-            from less than `cutoff_distance` from the considered box in a O(log(n)) complexity
-            (n=len(boxes))
-    tree: str
-        Type of tree to use. Either one of "kdtree" or "balltree". No critical difference in
-        performances were observed during testing.
-
-
-    Returns
-    -------
-    list
-        List of indices to keep, sorted by decreasing score confidence
+    See `lsnms.nms` docstring.
     """
-    if tree not in ["kdtree", "balltree"]:
-        raise ValueError('`tree` must be either one of "balltree" or "kdtree"')
     keep = []
 
-    # Check that boxes are in correct orientation
-    deltas = boxes[:, 2:] - boxes[:, :2]
-    assert deltas.min() > 0
+    # Discard boxes below score threshold right now to avoid building the tree on useless boxes
+    boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
-    if cutoff_distance >= 0:
-        # Numba can not unify different types for the same variable
-        if tree == "kdtree":
-            kdtree = KDTree(boxes[:, :2], 32)
-        else:
-            balltree = BallTree(boxes[:, :2], 32)
+    rtree = RTree(boxes, 32)
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
@@ -87,62 +42,134 @@ def nms(
 
         boxA = boxes[current_idx]
 
-        # If a cutoff distance was specified, query neighbors within this distance
-        if cutoff_distance >= 0:
-            if tree == "kdtree":
-                query = kdtree.query_radius(boxA[:2], cutoff_distance)
-            else:
-                query = balltree.query_radius(boxA[:2], cutoff_distance)
-        # Else, just review all the boxes
-        else:
-            query = order
+        # Query the overlapping boxes and return their intersection
+        query, query_intersections = rtree.intersect(boxA, 0.0)
 
-        for query_idx in query:
+        for query_idx, overlap in zip(query, query_intersections):
             if not to_consider[query_idx]:
                 continue
-            boxB = boxes[query_idx]
-            inter = intersection(boxA, boxB)
-            sc = inter / (areas[current_idx] + areas[query_idx] - inter)
+            sc = overlap / (areas[current_idx] + areas[query_idx] - overlap)
             to_consider[query_idx] = sc < iou_threshold
 
+        # Add the current box
         keep.append(current_idx)
         to_consider[current_idx] = False
 
     return np.array(keep)
 
 
-@njit
-def naive_nms(boxes, scores, iou_threshold=0.5, score_threshold=0.0):
+def nms(
+    boxes: np.array,
+    scores: np.array,
+    iou_threshold: float = 0.5,
+    score_threshold: float = 0.0,
+    cutoff_distance: Optional[int] = None,
+    tree: Optional[str] = None,
+) -> np.array:
     """
-    Naive NMS, for timing comparisons only.
+    Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
+    This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
+    The overlapping boxes are queried using a R-tree, ensuring a log (average case) complexity.
+
+    Note that this implementation could be further optimized:
+    - Memory management is quite poor: several back and forth list-to-numpy conversions happen
+    - Some multi treading could be injected when comparing far appart clusters
+
+    Parameters
+    ----------
+    boxes : np.array
+        Array of boxes, in format (x0, y0, x1, y1) with x1 >= x0, y1 >= y0
+    scores : np.array
+        One-dimensional array of confidence scores. Note that in the case of multiclass,
+        this function must be applied class-wise.
+    iou_threshold : float, optional
+        Threshold used to consider two boxes to be overlapping, by default 0.5
+    score_threshold : float, optional
+        Threshold from which boxes are discarded, by default 0.0
+    cutoff_distance: int, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
+        which is parameter free.
+    tree: str, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, the tree used is a R-Tree.
+
+    Returns
+    -------
+    np.array
+        Indices of boxes kept, in decreasing order of confidence score.
     """
-    keep = np.empty(len(boxes), dtype=np.int64)
+    if cutoff_distance is not None or tree is not None:
+        warnings.warn(
+            "Both `cutoff_distance` and `tree` are deprecated and effect-less from version"
+            "0.2.X, since R-Tree is used by default to query overlapping boxes."
+        )
+
+    # Convert dtype, check shapes, dimensionality, and boundary values.
+    boxes, scores = check_correct_input(
+        boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
+    )
+    # Run NMS
+    keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold)
+
+    return keep
+
+
+@njit(fastmath=True)
+def naive_nms(
+    boxes: np.array, scores: np.array, iou_threshold: float = 0.5, score_threshold: float = 0.0
+) -> np.array:
+    """
+    Naive nms, for timing and comparisons only.
+
+    Parameters
+    ----------
+    boxes : np.array
+        Array of boxes, in format (x0, y0, x1, y1) with x1 >= x0, y1 >= y0
+    scores : np.array
+        One-dimensional array of confidence scores. Note that in the case of multiclass,
+        this function must be applied class-wise.
+    iou_threshold : float, optional
+        Threshold used to consider two boxes to be overlapping, by default 0.5
+    score_threshold : float, optional
+        Threshold from which boxes are discarded, by default 0.0
+    cutoff_distance: int, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
+        which is parameter free.
+    tree: str, optional
+        DEPRECATED, used for compatibility with version 0.1.X.
+        Since version 0.2.X, the tree used is a R-Tree.
+
+    Returns
+    -------
+    np.array
+        Indices of boxes kept, in decreasing order of confidence score.
+    """
+    keep = []
 
     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-    n_kept = 0
-    order = [i for i in np.argsort(scores, kind="quicksort")[::-1]]
-    while len(order):
-        current_idx = order.pop(0)
+    # n_kept = 0
+    suppressed = np.full(len(scores), False)
+    order = np.argsort(scores, kind="quicksort")[::-1]
+    for i in range(len(boxes)):
+        if suppressed[i]:
+            continue
+        current_idx = order[i]
 
-        keep[n_kept] = current_idx
-        n_kept += 1
-
-        # If score is already below threshold then break
         if scores[current_idx] < score_threshold:
             break
 
-        # Mutate in place the indices list
-        n = 0
-        for _ in range(len(order)):
-            inter = intersection(boxes[current_idx], boxes[order[n]])
-            sc = inter / (areas[current_idx] + areas[order[n]] - inter)
-            if sc > iou_threshold:
-                # If pop, no need to shift the index to the next position
-                # Since popping will naturally shift the values
-                order.pop(n)
-            else:
-                # If no pop, then shift to the next box
-                n += 1
+        keep.append(current_idx)
 
-    return keep[:n_kept]
+        for j in range(i, len(order), 1):
+            if suppressed[j]:
+                continue
+            inter = intersection(boxes[current_idx], boxes[order[j]])
+            sc = inter / (areas[current_idx] + areas[order[j]] - inter)
+            suppressed[j] = sc > iou_threshold
+
+    keep = np.array(keep)
+
+    return keep

@@ -3,7 +3,7 @@ Speeding up Non Maximum Suppresion ran on very large images by a several folds f
 This project becomes useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
-  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/timings_medium_image.png?token=AEJMSVNEIBF2PMWIVASMKATAMIKHS" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/simple_rtree_timings.png" width="700" />
   <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
 </p>
 
@@ -11,13 +11,13 @@ This project becomes useful in the case of very high dimensional images data, wh
 ## Installation
 This project is fully installable with pip:
 ```
-pip install lsnms
+pip install lsnms --upgrade
 ```
-or by cloning this repo
+or by cloning this repo with poetry
 ```
 git clone https://github.com/remydubois/lsnms
 cd lsnms/
-pip install -e .
+poetry install
 ```
 Only dependencies are numpy and numba.
 
@@ -36,13 +36,13 @@ boxes = np.concatenate([topleft, topleft + wh], axis=1).astype(np.float64)
 scores = np.random.uniform(0., 1., size=(len(boxes), ))
 
 # Apply NMS
-# During the process, only boxes distant from one another of less than 64 will be compared
-keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=64)
+# During the process, overlapping boxes are queried using a R-Tree, ensuring a log-time search
+keep = nms(boxes, scores, iou_threshold=0.5)
 boxes = boxes[keep]
 scores = scores[keep]
 
 # Apply WBC
-pooled_boxes, pooled_scores, cluster_indices = wbc(boxes, scores, iou_threshold=0.5, score_threshold=0.1, cutoff_distance=64)
+pooled_boxes, pooled_scores, cluster_indices = wbc(boxes, scores, iou_threshold=0.5)
 ```
 # Description
 ## Non Maximum Suppression
@@ -53,7 +53,7 @@ Note: confidence score are not represented on this image.
   <figcaption>NMS example (source https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/)</figcaption></center>
 </p> -->
 A nice introduction of the non maximum suppression algorithm can be found here: https://www.coursera.org/lecture/convolutional-neural-networks/non-max-suppression-dvrjH.  
-Basically, NMS discards redundant boxes in a set of predicted instances. It is an essential step of object detection pipelines.
+Basically, NMS discards redundant boxes in a set of predicted instances. It is an essential - and often unavoidable, step of object detection pipelines.
 
 
 ## Scaling up the Non Maximum Suppression process
@@ -69,14 +69,15 @@ A more natural way to speed up NMS could be through parallelization, like it is 
 3. The process remains quadratic, and does not scale well.
 ### LSNMS
 This project offers a way to overcome the aforementioned issues elegantly:
-1. Before the NMS process, a binary 2-dimensional tree is built on bounding boxes centroids (in a `O(n*log(n))` time)
-2. At each NMS step, boxes distant from less than a fixed radius of the considered box are queried in the tree (in a `O(log(n))` complexity time), and only those neighbors are considered in the pruning process: IoU computation + pruning if necessary. Hence, the overall NMS process is turned from a `O(n**2)` into a `O(n * log(n))` process. See a comparison of run times on the graph below (results obtained on sets of instances whose coordinates vary between 0 and 100,000 (x and y)). Note that the choice of the radius neighborhood is essential: the bigger the radius, the closer one is from the naive NMS process. On the other hand, if this radius is too small, one risks to produce wrong results. A safe rule of thumb is to choose a radius approximately equalling the size of the biggest bounding box of the dataset.
+1. Before the NMS process, a R-Tree is built on bounding boxes (in a `O(n*log(n))` time)
+2. At each NMS step, only boxes overlapping with the current highest scoring box are queried in the tree (in a `O(log(n))` complexity time), and only those neighbors are considered in the pruning process: IoU computation + pruning if necessary. Hence, the overall NMS process is turned from a `O(n**2)` into a `O(n * log(n))` process. See a comparison of run times on the graph below (results obtained on sets of instances whose coordinates vary between 0 and 10,000 (x and y)).  
+A nice introduction of R-Tree can be found here: https://iq.opengenus.org/r-tree/.
 
 Note that the timing reported below are all inclusive: it notably includes the tree building process, otherwise comparison would not be fair.
 
 <p float="center">
-  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/timingsxkcd.png" width="700" />
-  <figcaption>Run times (on a virtual image of 100kx100k pixels)</figcaption></center>
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/simple_rtree_timings.png" width="700" />
+  <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
 </p>
 
 
@@ -89,7 +90,7 @@ For the sake of speed, this repo is entirely (including the binary tree) built u
 For the sake of completeness, this repo also implements a variant of the Weighted Box Clustering algorithm (from https://arxiv.org/pdf/1811.08661.pdf). Since NMS can artificially push up confidence scores (by selecting only the highest scoring box per instance), WBC overcomes this by averaging box coordinates and scores of all the overlapping boxes (instead of discarding all the non-maximally scored overlaping boxes).
 
 ## Disclaimer: 
-1. The binary tree implementation could probably be further optimized, see implementation notes below.
+1. The tree implementation could probably be further optimized, see implementation notes below.
 2. Much simpler implementation could rely on existing KD-Tree implementations (such as sklearn's), query the tree before NMS, and tweak the NMS process to accept tree query's result. This repo implements it from scratch in full numba for the sake of completeness and elegance.
 3. The main parameter deciding the speed up brought by this method is (along with the amount of instances) the **density** of boxes over the image: in other words, the amount of overlapping boxes trimmed at each step of the NMS process. The lower the density of boxes, the higher the speed up factor.
 4. Due to numba's compiling process, the first call to each jitted function might lag a bit, second and further function calls (per python session) should not suffer this overhead.
@@ -112,32 +113,23 @@ root = Node(data, leaf_size=16)
 # recursively split and attach children if necessary
 root.build()  # This calls build(root) under the hood
 ```
-* For convenience: a wrapper class `BallTree` was implemented, encapsulating the above steps in `__init__`:
+* For convenience: a wrapper class `RTree` was implemented, encapsulating the above steps in `__init__`:
 ```python
-tree = BallTree(data, leaf_size=16)
+tree = RTree(data, leaf_size=16)
 ```
 
-* For the sake of exhaustivity, a `KDTree` class was also implemented, but turned out to be equally fast as the `BallTree` when used in the NMS:
-<p float="center">
-  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/timings_kd_versus_bt.png" width="700" />
-  <figcaption>Tree building times comparison</figcaption></center>
-</p>
-
-
 ## Performances
-The BallTree implemented in this repo was timed against scikit-learn's `neighbors` one. Note that runtimes are not fair to compare since sklearn implementation allows for node to contain
+The RTree implemented in this repo was timed against scikit-learn's `neighbors` one. Note that runtimes are not fair to compare since sklearn implementation allows for node to contain
 between `leaf_size` and `2 * leaf_size` datapoints. To account for this, I timed my implementation against sklearn tree with `int(0.67 * leaf_size)`  as `leaf_size`.
 ### Tree building time
 <p float="center">
-  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/building_timings.png" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/tree_building_times.png" width="700" />
   <figcaption>Trees building times comparison</figcaption></center>
 </p>
 
 
 ### Tree query time
 <p float="center">
-  <center><img src="https://github.com/remydubois/lsnms/blob/main/assets/images/query_timings.png" width="700" />
-  <figcaption>Trees query times comparison (single query, radius=100) in a 1000x1000 space</figcaption></center>
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/naive_vs_rtree_query.png" width="700" />
+  <figcaption>Trees query times comparison (single query) in a 1000x1000 space</figcaption></center>
 </p>
-
-Query time are somehow identical.

@@ -2,7 +2,7 @@ from numba import njit
 import numpy as np
 
 
-@njit
+@njit(cache=True)
 def area(box):
     """
     Computes bbox(es) area: is vectorized.
@@ -20,7 +20,7 @@ def area(box):
     return (box[..., 2] - box[..., 0]) * (box[..., 3] - box[..., 1])
 
 
-@njit
+@njit(cache=True, fastmath=True)
 def intersection(boxA, boxB):
     """
     Compute area of intersection of two boxes
@@ -37,15 +37,15 @@ def intersection(boxA, boxB):
     float64
         Area of intersection
     """
-    xA = max(boxA[0], boxB[0])
-    xB = min(boxA[2], boxB[2])
-    dx = max(xB - xA, 0.0)
+    xA = max(boxA[..., 0], boxB[..., 0])
+    xB = min(boxA[..., 2], boxB[..., 2])
+    dx = xB - xA
     if dx <= 0:
         return 0.0
 
-    yA = max(boxA[1], boxB[1])
-    yB = min(boxA[3], boxB[3])
-    dy = max(yB - yA, 0.0)
+    yA = max(boxA[..., 1], boxB[..., 1])
+    yB = min(boxA[..., 3], boxB[..., 3])
+    dy = yB - yA
     if dy <= 0.0:
         return 0.0
 
@@ -53,7 +53,7 @@ def intersection(boxA, boxB):
     return dx * dy
 
 
-@njit
+@njit(cache=True)
 def distance_to_hypersphere(X, centroid, radius):
     """
     Computes the smallest square distance from one point to a sphere defined by its centroid and
@@ -77,7 +77,7 @@ def distance_to_hypersphere(X, centroid, radius):
     return max(0, centroid_dist ** 0.5 - radius ** 0.5) ** 2
 
 
-@njit
+@njit(cache=True)
 def rdist(X1, X2):
     """
     Simple square distance between two points.
@@ -89,7 +89,7 @@ def rdist(X1, X2):
     return d_sq
 
 
-@njit
+@njit(cache=True)
 def englobing_sphere(data):
     """
     Compute parameters (centroid and radius) of the smallest sphere
@@ -113,7 +113,7 @@ def englobing_sphere(data):
     return centroid, max_radius
 
 
-@njit
+@njit(cache=True)
 def max_spread_axis(data):
     """
     Returns the axis of maximal spread.
@@ -138,7 +138,7 @@ def max_spread_axis(data):
     return splitdim
 
 
-@njit
+@njit(cache=True)
 def split_along_axis(data, axis):
     """
     Splits the data along axis in two datasets of equal size.
@@ -158,9 +158,22 @@ def split_along_axis(data, axis):
     """
     left, right = median_argsplit(data[:, axis])
     return left, right
+    # counts, bins = np.histogram(data[:, axis])
+    # bins = (bins[1:] + bins[:-1]) / 2
+    # cap = bins[counts.argmin()]
+    # mask = data[:, axis] <= cap
+    # n_left = mask.sum()
+    # # Account for the case where all positions along this axis are equal: split in the middle
+    # if n_left == len(data) or n_left == 0:
+    #     left = indices[: len(indices) // 2]
+    #     right = indices[len(indices) // 2 :]
+    # else:
+    #     left = indices[mask]
+    #     right = indices[np.logical_not(mask)]
+    # return left, right
 
 
-@njit
+@njit(cache=True)
 def distance_to_hyperplan(x, box):
     """
     Computes distance from a point to a hyperplan defined by its bounding box.
@@ -185,7 +198,7 @@ def distance_to_hyperplan(x, box):
     return d_sq
 
 
-@njit
+@njit(cache=True)
 def englobing_box(data):
     """
     Computes coordinates of the smallest bounding box containing all
@@ -208,7 +221,34 @@ def englobing_box(data):
     return np.array(bounds)
 
 
-@njit
+@njit(cache=True)
+def box_englobing_boxes(boxes):
+    """
+    Computes coordinates of the smallest bounding box containing all
+    the boxes.
+
+    Parameters
+    ----------
+    boxes : np.array
+        Boxes
+
+    Returns
+    -------
+    np.array
+        Bounding box in format  (x0, y0, x1, y1)
+    """
+    dim = boxes.shape[-1]
+    bounds = np.empty((dim,))
+    for j in range(dim):
+        if j < dim // 2:
+            bounds[j] = boxes[:, j].min()
+        else:
+            bounds[j] = boxes[:, j].max()
+
+    return bounds
+
+
+@njit(cache=True)
 def _partition(A, low, high, indices):
     """
     This is straight from numba master:
@@ -252,11 +292,10 @@ def _partition(A, low, high, indices):
     # print(A)
     A[i], A[high] = A[high], A[i]
     indices[i], indices[high] = indices[high], indices[i]
-
     return i
 
 
-@njit
+@njit(cache=True)
 def _select(arry, k, low, high):
     """
     This is straight from numba master:
@@ -275,7 +314,7 @@ def _select(arry, k, low, high):
     return indices, i
 
 
-@njit
+@njit(cache=True)
 def median_argsplit(arry):
     """
     Splits `arry` into two sets of indices, indicating values
@@ -302,3 +341,50 @@ def median_argsplit(arry):
     left = indices[:k]
     right = indices[k:]
     return left, right
+
+
+def check_correct_arrays(boxes: np.array, scores: np.array):
+    """
+    Check arrays characteristics: dtype dimensionality and shape
+    """
+    # Check dtypes:
+    if not boxes.dtype == "float64":
+        raise ValueError(f"Boxes should a float64 array. Received {boxes.dtype}")
+    if not scores.dtype == "float64":
+        raise ValueError(f"Scores should a float64 array. Received {scores.dtype}")
+
+    # Check shapes
+    if boxes.ndim != 2 or boxes.shape[-1] != 4:
+        raise ValueError(
+            f"Boxes should be of shape (n_boxes, 4). Received object of shape {boxes.shape}."
+        )
+    if scores.ndim != 1:
+        raise ValueError(
+            f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
+        )
+
+    # Check that boxes are in correct orientation
+    deltas = boxes[:, 2:] - boxes[:, :2]
+    if not deltas.min() > 0:
+        raise ValueError("Boxes should be encoded [x1, y1, x2, y2] with x1 < x2 & y1 < y2")
+
+
+def check_correct_input(
+    boxes: np.array, scores: np.array, iou_threshold: float, score_threshold: float
+):
+    """
+    Checks input validity: shape, dtype, dimensionality, and boundary values.
+    """
+
+    boxes = np.asarray(boxes, dtype=np.float64)
+    scores = np.asarray(scores, dtype=np.float64)
+
+    check_correct_arrays(boxes, scores)
+
+    # Check boundary values
+    if iou_threshold < 0.0 or iou_threshold > 1.0:
+        raise ValueError(f"IoU threshold should be between 0. and 1. Received {iou_threshold}.")
+    if score_threshold < 0.0 or score_threshold > 1.0:
+        raise ValueError(f"IoU threshold should be between 0. and 1. Received {score_threshold}.")
+
+    return boxes, scores
