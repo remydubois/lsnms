@@ -60,7 +60,7 @@ class RNode:
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"
-        
+
         self.dimensionality = data.shape[-1] // 2
 
         # Stores indices of each data point

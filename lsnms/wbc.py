@@ -11,7 +11,7 @@ def _wbc(
     boxes: np.array,
     scores: np.array,
     iou_threshold: float = 0.5,
-    score_threshold: float = 0.,
+    score_threshold: float = 0.0,
     iou_reweight: bool = False,
 ):
     """

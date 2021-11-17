@@ -149,13 +149,13 @@ def test_tree_building_timing():
     timings = defaultdict(list)
     for n in ns:
         boxes, _ = generate_boxes(10_000, n)
-        timings['sklearn'].append(time_sk_tree_build(boxes, repeats, leaf_size))
-        timings['rtree'].append(time_rtree_build(boxes, repeats, leaf_size))
+        timings["sklearn"].append(time_sk_tree_build(boxes, repeats, leaf_size))
+        timings["rtree"].append(time_rtree_build(boxes, repeats, leaf_size))
 
     with plt.xkcd():
         f, ax = plt.subplots(figsize=(8, 8))
-        ax.plot(ns, timings['sklearn'], label="sklearn's KDTree", marker="o")
-        ax.plot(ns, timings['rtree'], label="lsnms' RTree", marker="o")
+        ax.plot(ns, timings["sklearn"], label="sklearn's KDTree", marker="o")
+        ax.plot(ns, timings["rtree"], label="lsnms' RTree", marker="o")
         ax.set_xlabel("Number of boxes to index", c="k")
         ax.set_ylabel(f"Elapsed time (ms) (mean of {repeats} runs)")
         ax.set_title("sklearn KDTree versus LSNMS RTree building timing")

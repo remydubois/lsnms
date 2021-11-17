@@ -157,7 +157,7 @@ def naive_nms(
         if suppressed[i]:
             continue
         current_idx = order[i]
-        
+
         if scores[current_idx] < score_threshold:
             break
 

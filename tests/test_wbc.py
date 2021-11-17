@@ -48,12 +48,7 @@ def test_wbc():
     boxes, scores, final_cluster_boxes, final_cluster_scores = generate_data()
 
     # Apply WBC
-    wbc_boxes, wbc_scores, _ = wbc(
-        boxes,
-        scores,
-        iou_threshold=0.5,
-        iou_reweight=False
-    )
+    wbc_boxes, wbc_scores, _ = wbc(boxes, scores, iou_threshold=0.5, iou_reweight=False)
 
     # put the boxes in the same order to be able to match to the the pre-computed centroids
     sorted_indices = np.argsort(wbc_boxes[:, 0])

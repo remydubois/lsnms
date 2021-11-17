@@ -1,6 +1,7 @@
 import numpy as np
 from lsnms.rtree import RTree
 
+
 def intersection(boxA, boxB):
     xA = np.maximum(boxA[..., 0], boxB[..., 0])
     xB = np.minimum(boxA[..., 2], boxB[..., 2])
