@@ -3,7 +3,7 @@ Speeding up Non Maximum Suppresion ran on very large images by a several folds f
 This project becomes useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
-  <center><img src="assets/images/simple_rtree_timings.png" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/simple_rtree_timings.png" width="700" />
   <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
 </p>
 
@@ -76,7 +76,7 @@ A nice introduction of R-Tree can be found here: https://iq.opengenus.org/r-tree
 Note that the timing reported below are all inclusive: it notably includes the tree building process, otherwise comparison would not be fair.
 
 <p float="center">
-  <center><img src="assets/images/simple_rtree_timings.png" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/simple_rtree_timings.png" width="700" />
   <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
 </p>
 
@@ -123,13 +123,13 @@ The RTree implemented in this repo was timed against scikit-learn's `neighbors` 
 between `leaf_size` and `2 * leaf_size` datapoints. To account for this, I timed my implementation against sklearn tree with `int(0.67 * leaf_size)`  as `leaf_size`.
 ### Tree building time
 <p float="center">
-  <center><img src="assets/images/tree_building_times.png" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/tree_building_times.png" width="700" />
   <figcaption>Trees building times comparison</figcaption></center>
 </p>
 
 
 ### Tree query time
 <p float="center">
-  <center><img src="assets/images/naive_vs_rtree_query.png" width="700" />
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/naive_vs_rtree_query.png" width="700" />
   <figcaption>Trees query times comparison (single query) in a 1000x1000 space</figcaption></center>
 </p>
