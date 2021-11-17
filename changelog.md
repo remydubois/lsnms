@@ -7,6 +7,7 @@ Version 0.2.0
   -> `lsnms.nms` is now twice faster to compile (only one tree to compile)
 - `cutoff_distance` and `tree` are now deprecated. Warnings are issued when those are specified.
 - cleared the tests structure
+- added types conversion and sanity checks for data shape, etc
 - cached all the jitted function which could (the non recursive ones) -> saves 2 seconds of compilation time at first use.
 -> `lsnms.nms` is now hyperparameter free, runs just as fast as before, and almost three times faster to compile at first use.
 
