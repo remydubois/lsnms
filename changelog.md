@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 0.2.0
+------------
+- Discarded BallTree and KDTree which are now replaced by a RTree: as fast and hyperparameter-free
+  -> `lsnms.nms` is now five times faster to compile than before 
+- `cutoff_distance` and `tree` are now deprecated. Warnings are issued when those are specified.
+- cleared the tests structure
+- cached all the jitted function which could (the non recursive ones) -> saves 2 seconds of compilation time at first use.
 
 Patch 0.1.2
 ------------
