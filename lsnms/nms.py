@@ -12,6 +12,7 @@ def _nms(
     scores: np.array,
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
+    tree_leaf_size: int = 32,
 ) -> np.array:
     """
     See `lsnms.nms` docstring.
@@ -22,7 +23,7 @@ def _nms(
     boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
-    rtree = RTree(boxes, 32)
+    rtree = RTree(boxes, tree_leaf_size)
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
@@ -65,6 +66,7 @@ def nms(
     score_threshold: float = 0.0,
     cutoff_distance: Optional[int] = None,
     tree: Optional[str] = None,
+    tree_leaf_size: int = 32
 ) -> np.array:
     """
     Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
@@ -93,6 +95,8 @@ def nms(
     tree: str, optional
         DEPRECATED, used for compatibility with version 0.1.X.
         Since version 0.2.X, the tree used is a R-Tree.
+    tree_leaf_size: int, optional
+        The leaf size parameter of the underlying R-Tree built for box query.
 
     Returns
     -------
@@ -110,7 +114,7 @@ def nms(
         boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
     )
     # Run NMS
-    keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold)
+    keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold, tree_leaf_size=tree_leaf_size)
 
     return keep
 
