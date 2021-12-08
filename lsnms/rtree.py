@@ -213,11 +213,12 @@ def intersect(
     node: Node
         Currently visited node
     X : np.array
-        Query point (one point).
-    max_radius : float
-        Max radius
-    buffer : list
-        List of currently-gathered neighbors. Stores in-place the neighbors along the search process
+        Query box (one box).
+    indices_buffer : list
+        List of currently-gathered neighbors. Stores in-place the neighbor indices along the search process
+    intersection_buffer : list
+        List of currently-gathered neighbor intersection with the query box.
+        Since the redundancy criterion is intersection over union, I store it here to avoid recomputing it later.
     inter_UB : float, optional
         Intersection upper bound: this is the intersection of X with the current node's bbox. By
         definition, this is the highest intersection a box contained in this node can get with X.
@@ -228,7 +229,8 @@ def intersect(
         # If first call, no lower bound distance has already been computed
         inter_UB = intersection(X, node.bbox)
 
-    # if query is outside the radius, then trim this node out
+    # By definition, each box contained inside this node has an intersection with the current bbox
+    # of less than the intersection with the node's englobing bounding box.
     if inter_UB <= min_area:
         return
 
