@@ -6,8 +6,8 @@ from lsnms.nms import naive_nms
 from torchvision.ops import boxes as box_ops
 
 
-def datagen():
-    topleft = np.random.uniform(0.0, high=1_000, size=(10_000, 2))
+def datagen(n=10_000):
+    topleft = np.random.uniform(0.0, high=1_000, size=(n, 2))
     wh = np.random.uniform(15, 45, size=topleft.shape)
 
     boxes = np.concatenate([topleft, topleft + wh], axis=1)

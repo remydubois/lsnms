@@ -1,4 +1,6 @@
-from numba import njit
+from numba import njit, int64, float64
+from numba.typed import Dict
+import math
 import numpy as np
 
 
@@ -341,6 +343,65 @@ def median_argsplit(arry):
     left = indices[:k]
     right = indices[k:]
     return left, right
+
+
+@njit(cache=True)
+def unravel_index(index: np.array, shape:tuple):
+    """
+    Unravel index into the given shape.
+    np.unravel_index is not supported by numba, as is.
+
+    Taken from https://stackoverflow.com/a/58972778.
+
+    Parameters
+    ----------
+    index : np.array
+        One-dimensional integer array of flatten indices
+    shape : tuple or list
+        Tuple or list of integers to specify the shape into which to unravel.
+
+    Returns
+    -------
+    np.array
+        Numpy array of indices of shape (dimensionality, len(index))
+    """
+    shape = list(shape)
+    index = np.expand_dims(index, 1)
+    divider = np.array([1, ] + shape[:0:-1]).cumprod()[::-1]
+    positions = index // divider % np.array(shape)
+    return positions
+
+
+@njit(cache=True)
+def offset_bboxes(bboxes, class_ids):
+    # Compute offset (or class subsector size)
+    dimensionality = bboxes.shape[-1] // 2
+    # + 2 to avoid any overlap between subregions
+    max_offset = bboxes[dimensionality:].max() + 2
+
+    # Build the pavement of class-wise subsectors
+    classes = np.unique(class_ids)
+    n_classes = classes.size
+    class_indexer = np.arange(n_classes)
+    mosaic_width = round(math.ceil(n_classes ** (1. / dimensionality)))
+    mosaic_shape = [mosaic_width, ] * dimensionality
+    class_subsector_position = unravel_index(class_indexer, mosaic_shape)
+    class_offset = class_subsector_position * max_offset
+    # Make it double for both bbox bounds
+    class_offset = np.concatenate((class_offset, class_offset), axis=1)
+
+    # Now offset the bboxes depending on their class
+    # Note that we do not care at all about the order of the classes
+    # Nor the order offsets come in
+    bboxes_offset = np.empty_like(bboxes)
+    # Note that if np.unique returned position of the unique values we would not have the trouble
+    stored_offsets = {class_ids[0]: class_offset[0]}
+    for i, class_id in enumerate(class_ids):
+        if class_id not in stored_offsets:
+            stored_offsets[class_id] = class_offset[len(stored_offsets)]
+        bboxes_offset[i] = stored_offsets[class_id]
+        
+    return bboxes + bboxes_offset
 
 
 def check_correct_arrays(boxes: np.array, scores: np.array):
