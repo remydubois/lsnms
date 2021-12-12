@@ -133,7 +133,7 @@ regions) and the query time would be impacted.
 Instead, here the boxes are offseted forming a "mosaic" of class-wise regions, see figure below.
 <p float="center">
   <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/multiclass_offset.png" width="700" />
-  <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
+  <figcaption>Illustration of the bbox offsetting process for multiclass support</figcaption></center>
 </p>
 
 ## Performances
