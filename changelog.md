@@ -4,6 +4,7 @@ Changelog
 Version 0.3.0
 ------------
 - Added multiclass support for NMS
+- Use the underlying RNode class in nms now, which speeds up compilation (no need to compile RTree anymore)
 
 Version 0.2.0
 ------------
