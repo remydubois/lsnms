@@ -360,7 +360,7 @@ def offset_bboxes(bboxes: np.array, class_ids: np.array):
 
     Note that this would hurt performances because the underlying RTree that we would build on this
     would be suboptimal: many regions would actually be empty (because RTree builds rectangular
-    reions) and the query time would be impacted.
+    regions) and the query time would be impacted.
 
     Instead, here the boxes are offseted forming a "mosaic" of class-wise regions, see figures
     in readme.
@@ -426,13 +426,15 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: np.array)
         raise ValueError(
             f"Boxes should be of shape (n_boxes, 4). Received object of shape {boxes.shape}."
         )
-    if scores.ndim != 1:
+    if scores.ndim != 1 or len(scores) != len(boxes):
         raise ValueError(
-            f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
+            f"Scores should be a one-dimensional vector of same size as boxes vector."
+            f"Received object of shape {scores.shape}."
         )
-    if class_ids.ndim != 1:
+    if class_ids.ndim != 1 or len(class_ids) != len(boxes):
         raise ValueError(
-            f"Scores should be a one-dimensional vector. Received object of shape {class_ids.shape}."
+            f"Scores should be a one-dimensional vector of same size as boxes vector."
+            f"Received object of shape {class_ids.shape}."
         )
 
     # Check that boxes are in correct orientation
