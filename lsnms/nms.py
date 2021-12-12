@@ -62,11 +62,12 @@ def _nms(
 def nms(
     boxes: np.array,
     scores: np.array,
+    class_ids: Optional[np.array],
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
     cutoff_distance: Optional[int] = None,
     tree: Optional[str] = None,
-    tree_leaf_size: int = 32
+    tree_leaf_size: int = 32,
 ) -> np.array:
     """
     Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
@@ -84,6 +85,10 @@ def nms(
     scores : np.array
         One-dimensional array of confidence scores. Note that in the case of multiclass,
         this function must be applied class-wise.
+    class_ids: np.array
+        One-dimensional integer array indicating the respective classes of the bboxes. If this
+        is not None, a class-wise NMS will be applied. If None, all boxes are considered of the
+        same class.
     iou_threshold : float, optional
         Threshold used to consider two boxes to be overlapping, by default 0.5
     score_threshold : float, optional
@@ -109,12 +114,21 @@ def nms(
             "0.2.X, since R-Tree is used by default to query overlapping boxes."
         )
 
+    if class_ids is None:
+        class_ids = np.zeros(len(boxes), dtype=np.int64)
+
     # Convert dtype, check shapes, dimensionality, and boundary values.
     boxes, scores = check_correct_input(
         boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
     )
     # Run NMS
-    keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold, tree_leaf_size=tree_leaf_size)
+    keep = _nms(
+        boxes,
+        scores,
+        iou_threshold=iou_threshold,
+        score_threshold=score_threshold,
+        tree_leaf_size=tree_leaf_size,
+    )
 
     return keep
 

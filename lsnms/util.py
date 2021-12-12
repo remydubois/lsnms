@@ -404,6 +404,47 @@ def offset_bboxes(bboxes, class_ids):
     return bboxes + bboxes_offset
 
 
+def offset_bboxes_numpy(bboxes, class_ids):
+    """Plain numpy implementation is actually easier.
+
+    Parameters
+    ----------
+    bboxes : [type]
+        [description]
+    class_ids : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    # Compute offset (or class subsector size)
+    dimensionality = bboxes.shape[-1] // 2
+    # + 2 to avoid any overlap between subregions
+    max_offset = bboxes[dimensionality:].max() + 2
+
+    # Build the pavement of class-wise subsectors
+    # We actually dont care about actual class labels, replace it by their index
+    classes, class_ids = np.unique(class_ids, return_inverse=True)
+    n_classes = classes.size
+    class_indexer = np.arange(n_classes)
+    mosaic_width = round(math.ceil(n_classes ** (1. / dimensionality)))
+    mosaic_shape = (mosaic_width, ) * dimensionality
+    # Get class subsector positions within the mosaic
+    class_subsector_positions = np.unravel_index(class_indexer, mosaic_shape)
+    # Make it a vector
+    class_subsector_positions = np.stack(class_subsector_positions, axis=1)
+    class_offset = class_subsector_positions * max_offset
+    # Make it double for both bbox bounds
+    class_offset = np.concatenate((class_offset, class_offset), axis=1)
+
+    # Retrieve the offset class wise
+    bboxes_offset = class_offset[class_ids]
+
+    return bboxes + bboxes_offset
+
+
 def check_correct_arrays(boxes: np.array, scores: np.array):
     """
     Check arrays characteristics: dtype dimensionality and shape
