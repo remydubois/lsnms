@@ -3,7 +3,7 @@ import warnings
 from numba import njit
 import numpy as np
 from lsnms.rtree import RTree
-from lsnms.util import area, intersection, check_correct_input
+from lsnms.util import area, intersection, check_correct_input, offset_bboxes
 
 
 @njit(cache=False)
@@ -118,9 +118,13 @@ def nms(
         class_ids = np.zeros(len(boxes), dtype=np.int64)
 
     # Convert dtype, check shapes, dimensionality, and boundary values.
-    boxes, scores = check_correct_input(
-        boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
+    boxes, scores, class_ids = check_correct_input(
+        boxes, scores, class_ids, iou_threshold=iou_threshold, score_threshold=score_threshold
     )
+
+    # Offset the bounding boxes per class, note that this is not jitted so applied here
+    boxes = offset_bboxes(boxes, class_ids)
+
     # Run NMS
     keep = _nms(
         boxes,

@@ -345,79 +345,40 @@ def median_argsplit(arry):
     return left, right
 
 
-@njit(cache=True)
-def unravel_index(index: np.array, shape:tuple):
+def offset_bboxes(bboxes: np.array, class_ids: np.array):
     """
-    Unravel index into the given shape.
-    np.unravel_index is not supported by numba, as is.
+    Function used to offset bboxes of different classes so that boxes of different
+    classes do not overlap. This is the trick used in multiclass NMS standardly.
 
-    Taken from https://stackoverflow.com/a/58972778.
+    The only peculiarity here is that in a regular NMS setup, boxes can be offseted "diagonally".
+    i.e. all pushed along a diagonal, something like:
+    ```
+    max_offset = bboxes[2:].max()
+    offset = class_id * max_offset
+    ```
+    To create a "diagonal per block" aspect.
+
+    Note that this would hurt performances because the underlying RTree that we would build on this
+    would be suboptimal: many regions would actually be empty (because RTree builds rectangular
+    reions) and the query time would be impacted.
+
+    Instead, here the boxes are offseted forming a "mosaic" of class-wise regions, see figures
+    in readme.
+
+    Note that this function is completely dimensionality agnostic.
+
 
     Parameters
     ----------
-    index : np.array
-        One-dimensional integer array of flatten indices
-    shape : tuple or list
-        Tuple or list of integers to specify the shape into which to unravel.
+    bboxes : np.array
+        Array of bboxes in VOC format
+    class_ids : np.array
+        One-dimensional array of integers class identifiers.
 
     Returns
     -------
     np.array
-        Numpy array of indices of shape (dimensionality, len(index))
-    """
-    shape = list(shape)
-    index = np.expand_dims(index, 1)
-    divider = np.array([1, ] + shape[:0:-1]).cumprod()[::-1]
-    positions = index // divider % np.array(shape)
-    return positions
-
-
-@njit(cache=True)
-def offset_bboxes(bboxes, class_ids):
-    # Compute offset (or class subsector size)
-    dimensionality = bboxes.shape[-1] // 2
-    # + 2 to avoid any overlap between subregions
-    max_offset = bboxes[dimensionality:].max() + 2
-
-    # Build the pavement of class-wise subsectors
-    classes = np.unique(class_ids)
-    n_classes = classes.size
-    class_indexer = np.arange(n_classes)
-    mosaic_width = round(math.ceil(n_classes ** (1. / dimensionality)))
-    mosaic_shape = [mosaic_width, ] * dimensionality
-    class_subsector_position = unravel_index(class_indexer, mosaic_shape)
-    class_offset = class_subsector_position * max_offset
-    # Make it double for both bbox bounds
-    class_offset = np.concatenate((class_offset, class_offset), axis=1)
-
-    # Now offset the bboxes depending on their class
-    # Note that we do not care at all about the order of the classes
-    # Nor the order offsets come in
-    bboxes_offset = np.empty_like(bboxes)
-    # Note that if np.unique returned position of the unique values we would not have the trouble
-    stored_offsets = {class_ids[0]: class_offset[0]}
-    for i, class_id in enumerate(class_ids):
-        if class_id not in stored_offsets:
-            stored_offsets[class_id] = class_offset[len(stored_offsets)]
-        bboxes_offset[i] = stored_offsets[class_id]
-        
-    return bboxes + bboxes_offset
-
-
-def offset_bboxes_numpy(bboxes, class_ids):
-    """Plain numpy implementation is actually easier.
-
-    Parameters
-    ----------
-    bboxes : [type]
-        [description]
-    class_ids : [type]
-        [description]
-
-    Returns
-    -------
-    [type]
-        [description]
+        New array of bounding boxes, offseted class-wise.
     """
     # Compute offset (or class subsector size)
     dimensionality = bboxes.shape[-1] // 2
@@ -429,8 +390,8 @@ def offset_bboxes_numpy(bboxes, class_ids):
     classes, class_ids = np.unique(class_ids, return_inverse=True)
     n_classes = classes.size
     class_indexer = np.arange(n_classes)
-    mosaic_width = round(math.ceil(n_classes ** (1. / dimensionality)))
-    mosaic_shape = (mosaic_width, ) * dimensionality
+    mosaic_width = round(math.ceil(n_classes ** (1.0 / dimensionality)))
+    mosaic_shape = (mosaic_width,) * dimensionality
     # Get class subsector positions within the mosaic
     class_subsector_positions = np.unravel_index(class_indexer, mosaic_shape)
     # Make it a vector
@@ -445,7 +406,7 @@ def offset_bboxes_numpy(bboxes, class_ids):
     return bboxes + bboxes_offset
 
 
-def check_correct_arrays(boxes: np.array, scores: np.array):
+def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: np.array):
     """
     Check arrays characteristics: dtype dimensionality and shape
     """
@@ -454,6 +415,11 @@ def check_correct_arrays(boxes: np.array, scores: np.array):
         raise ValueError(f"Boxes should a float64 array. Received {boxes.dtype}")
     if not scores.dtype == "float64":
         raise ValueError(f"Scores should a float64 array. Received {scores.dtype}")
+    if not np.can_cast(class_ids, np.integer) or class_ids.min() < 0:
+        raise ValueError(
+            f"Class ids should a positive integer array."
+            f"Received {class_ids.dtype} with min {class_ids.min()}"
+        )
 
     # Check shapes
     if boxes.ndim != 2 or boxes.shape[-1] != 4:
@@ -464,6 +430,10 @@ def check_correct_arrays(boxes: np.array, scores: np.array):
         raise ValueError(
             f"Scores should be a one-dimensional vector. Received object of shape {scores.shape}."
         )
+    if class_ids.ndim != 1:
+        raise ValueError(
+            f"Scores should be a one-dimensional vector. Received object of shape {class_ids.shape}."
+        )
 
     # Check that boxes are in correct orientation
     deltas = boxes[:, 2:] - boxes[:, :2]
@@ -472,7 +442,11 @@ def check_correct_arrays(boxes: np.array, scores: np.array):
 
 
 def check_correct_input(
-    boxes: np.array, scores: np.array, iou_threshold: float, score_threshold: float
+    boxes: np.array,
+    scores: np.array,
+    class_ids: np.array,
+    iou_threshold: float,
+    score_threshold: float,
 ):
     """
     Checks input validity: shape, dtype, dimensionality, and boundary values.
@@ -480,8 +454,9 @@ def check_correct_input(
 
     boxes = np.asarray(boxes, dtype=np.float64)
     scores = np.asarray(scores, dtype=np.float64)
+    class_ids = np.asarray(class_ids)
 
-    check_correct_arrays(boxes, scores)
+    check_correct_arrays(boxes, scores, class_ids)
 
     # Check boundary values
     if iou_threshold < 0.0 or iou_threshold > 1.0:
@@ -489,4 +464,4 @@ def check_correct_input(
     if score_threshold < 0.0 or score_threshold > 1.0:
         raise ValueError(f"IoU threshold should be between 0. and 1. Received {score_threshold}.")
 
-    return boxes, scores
+    return boxes, scores, class_ids

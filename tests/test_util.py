@@ -1,6 +1,6 @@
 import numpy as np
 from numba import njit
-from lsnms.util import offset_bboxes, offset_bboxes_numpy, box_englobing_boxes, intersection
+from lsnms.util import offset_bboxes, box_englobing_boxes, intersection
 from lsnms.rtree import RTree
 
 
@@ -35,8 +35,7 @@ def test_offset_bboxes():
     rng = np.random.default_rng(0)
     class_ids = rng.integers(0, 2, size=len(boxes))
 
-    # _new_boxes = offset_bboxes(boxes, class_ids)
-    new_boxes = offset_bboxes_numpy(boxes, class_ids)
+    new_boxes = offset_bboxes(boxes, class_ids)
 
     # Assert that no boxes for class a intersect with class b
     unique_class_ids, class_index = np.unique(class_ids, return_inverse=True)
@@ -68,7 +67,7 @@ def test_visual_offset_bboxes():
     ax.set_xlim([0, 2_000])
     ax.set_ylim([0, 2_000])
 
-    new_boxes = offset_bboxes_numpy(boxes, class_ids)
+    new_boxes = offset_bboxes(boxes, class_ids)
     for c in np.unique(class_ids):
         ax1.plot(*new_boxes[class_ids == c, :2].T, linestyle="", marker="o", markersize=1)
     ax1.set_title("Raw boxes centroids colored per class after offset")
