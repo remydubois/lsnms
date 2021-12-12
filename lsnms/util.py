@@ -383,7 +383,7 @@ def offset_bboxes(bboxes: np.array, class_ids: np.array):
     # Compute offset (or class subsector size)
     dimensionality = bboxes.shape[-1] // 2
     # + 2 to avoid any overlap between subregions
-    max_offset = bboxes[dimensionality:].max() + 2
+    max_offset = bboxes[:, dimensionality:].max() + 2
 
     # Build the pavement of class-wise subsectors
     # We actually dont care about actual class labels, replace it by their index
