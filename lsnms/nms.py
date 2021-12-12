@@ -2,8 +2,8 @@ from typing import Optional
 import warnings
 from numba import njit
 import numpy as np
-from lsnms.rtree import RTree
-from lsnms.util import area, intersection, check_correct_input, offset_bboxes
+from lsnms.rtree import RTree, RNode
+from lsnms.util import area, intersection, check_correct_input, offset_bboxes, max_spread_axis
 
 
 @njit(cache=False)
@@ -23,7 +23,8 @@ def _nms(
     boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
-    rtree = RTree(boxes, tree_leaf_size)
+    rtree = RNode(boxes, tree_leaf_size, max_spread_axis(boxes), None)
+    rtree.build()
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
