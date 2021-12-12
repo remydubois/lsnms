@@ -1,5 +1,5 @@
 # LSNMS
-Speeding up Non Maximum Suppression ran on very large images by a several folds factor, using a sparse implementation of NMS.  
+Speeding up Non Maximum Suppression with a multiclass support ran on very large images by a several folds factor, using a sparse implementation of NMS.  
 This project becomes useful in the case of very high dimensional images data, when the amount of predicted instances to prune becomes considerable (> 10,000 objects).
 
 <p float="center">
@@ -35,9 +35,14 @@ boxes = np.concatenate([topleft, topleft + wh], axis=1).astype(np.float64)
 # Create scores
 scores = np.random.uniform(0., 1., size=(len(boxes), ))
 
+# Create class_ids if multiclass, 3 classes here
+class_ids = np.random.randint(0, 2, size=(len(boxes), ))
+
 # Apply NMS
 # During the process, overlapping boxes are queried using a R-Tree, ensuring a log-time search
 keep = nms(boxes, scores, iou_threshold=0.5)
+# Or, in a multiclass setting
+keep = nms(boxes, scores, iou_threshold=0.5, class_ids=class_ids)
 boxes = boxes[keep]
 scores = scores[keep]
 
@@ -102,6 +107,7 @@ As said above, the main parameter guiding speed up from naive NMS is instance (o
 
 ---
 # Implementations notes
+## Tree implementation
 Due to Numba compiler's limitations, tree implementations has some specificities:  
 Because jit-class methods can not be recursive, the tree building process (node splitting + children instanciation) can not be entirely done inside the `Node.__init__` method:
 * Otherwise, the `__init__` method would be recursive (children instanciation)
@@ -117,6 +123,18 @@ root.build()  # This calls build(root) under the hood
 ```python
 tree = RTree(data, leaf_size=16)
 ```
+## Multiclass support
+For multiclass support, a peculiar method to offset bounding boxes was used (offseting bounding boxes class-wise is the standard way to apply NMS class-wise).
+Note that the standard way to offset bboxes is to create a "diagonal per block" aspect, with each class' bboxes being positioned along a virtual diagonal.
+
+Note that this would hurt performances because the underlying RTree that we would build on this would be suboptimal: many regions would actually be empty (because RTree builds rectangular
+regions) and the query time would be impacted.
+
+Instead, here the boxes are offseted forming a "mosaic" of class-wise regions, see figure below.
+<p float="center">
+  <center><img src="https://raw.githubusercontent.com/remydubois/lsnms/main/assets/images/multiclass_offset.png" width="700" />
+  <figcaption>Run times (on a virtual image of 10kx10k pixels)</figcaption></center>
+</p>
 
 ## Performances
 The RTree implemented in this repo was timed against scikit-learn's `neighbors` one. Note that runtimes are not fair to compare since sklearn implementation allows for node to contain

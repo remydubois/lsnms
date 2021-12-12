@@ -62,8 +62,8 @@ def _nms(
 def nms(
     boxes: np.array,
     scores: np.array,
-    class_ids: Optional[np.array],
     iou_threshold: float = 0.5,
+    class_ids: Optional[np.array] = None,
     score_threshold: float = 0.0,
     cutoff_distance: Optional[int] = None,
     tree: Optional[str] = None,
@@ -85,12 +85,12 @@ def nms(
     scores : np.array
         One-dimensional array of confidence scores. Note that in the case of multiclass,
         this function must be applied class-wise.
-    class_ids: np.array
+    iou_threshold : float, optional
+        Threshold used to consider two boxes to be overlapping, by default 0.5
+    class_ids: np.array, optional
         One-dimensional integer array indicating the respective classes of the bboxes. If this
         is not None, a class-wise NMS will be applied. If None, all boxes are considered of the
         same class.
-    iou_threshold : float, optional
-        Threshold used to consider two boxes to be overlapping, by default 0.5
     score_threshold : float, optional
         Threshold from which boxes are discarded, by default 0.0
     cutoff_distance: int, optional
@@ -122,7 +122,7 @@ def nms(
         boxes, scores, class_ids, iou_threshold=iou_threshold, score_threshold=score_threshold
     )
 
-    # Offset the bounding boxes per class, note that this is not jitted so applied here
+    # Offset the bounding boxes per class, note that this func is not jitted, so applied here
     boxes = offset_bboxes(boxes, class_ids)
 
     # Run NMS

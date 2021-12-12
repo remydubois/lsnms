@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 0.3.0
+------------
+- Added multiclass support for NMS
+
 Version 0.2.0
 ------------
 - Discarded BallTree and KDTree which are now replaced by a RTree: as fast and hyperparameter-free
