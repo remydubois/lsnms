@@ -430,14 +430,14 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: Optional[
         )
     if scores.ndim != 1 or len(scores) != len(boxes):
         raise ValueError(
-            f"Scores should be a one-dimensional vector of same size as boxes vector."
-            f"Received object of shape {scores.shape}."
+            f"Scores should be a one-dimensional vector of same size as boxes vector. "
+            f"Received object of shape {scores.shape} but {len(boxes)} boxes."
         )
     if class_ids is not None:
         if class_ids.ndim != 1 or len(class_ids) != len(boxes):
             raise ValueError(
-                f"Class_ids should be a one-dimensional vector of same size as boxes vector."
-                f"Received object of shape {class_ids.shape}."
+                f"Class_ids should be a one-dimensional vector of same size as boxes vector. "
+                f"Received object of shape {class_ids.shape} but {len(boxes)} boxes."
             )
 
     # Check that boxes are in correct orientation
