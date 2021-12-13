@@ -2,8 +2,8 @@ from typing import Optional
 import warnings
 from numba import njit
 import numpy as np
-from lsnms.rtree import RTree
-from lsnms.util import area, intersection, check_correct_input
+from lsnms.rtree import RTree, RNode
+from lsnms.util import area, intersection, check_correct_input, offset_bboxes, max_spread_axis
 
 
 @njit(cache=False)
@@ -23,7 +23,8 @@ def _nms(
     boxes = boxes[scores > score_threshold]
 
     # Build the BallTree
-    rtree = RTree(boxes, tree_leaf_size)
+    rtree = RNode(boxes, tree_leaf_size, max_spread_axis(boxes), None)
+    rtree.build()
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)
@@ -64,14 +65,34 @@ def nms(
     scores: np.array,
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
+    class_ids: Optional[np.array] = None,
     cutoff_distance: Optional[int] = None,
     tree: Optional[str] = None,
-    tree_leaf_size: int = 32
+    tree_leaf_size: int = 32,
 ) -> np.array:
     """
     Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
     This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
     The overlapping boxes are queried using a R-tree, ensuring a log (average case) complexity.
+
+    If `class_ids` is given (one class per object), a class-wise NMS will be applied. This is simply
+    done by offsetting the bounding boxes so that bboxes of different classes dont overlap.
+
+    ```python3
+    boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
+    scores = # one-dimensional array of confidence scores
+
+    keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0.)
+    ```
+    or
+    ```python3
+    boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
+    scores = # one-dimensional array of confidence scores
+    class_ids = # one-dimensional array of class indicators (one per object)
+    
+    keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0., class_ids=class_ids)
+    ```
+    
 
     Note that this implementation could be further optimized:
     - Memory management is quite poor: several back and forth list-to-numpy conversions happen
@@ -88,6 +109,10 @@ def nms(
         Threshold used to consider two boxes to be overlapping, by default 0.5
     score_threshold : float, optional
         Threshold from which boxes are discarded, by default 0.0
+    class_ids: np.array, optional
+        One-dimensional integer array indicating the respective classes of the bboxes. If this
+        is not None, a class-wise NMS will be applied. If None, all boxes are considered of the
+        same class.
     cutoff_distance: int, optional
         DEPRECATED, used for compatibility with version 0.1.X.
         Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
@@ -109,12 +134,25 @@ def nms(
             "0.2.X, since R-Tree is used by default to query overlapping boxes."
         )
 
+    if class_ids is None:
+        class_ids = np.zeros(len(boxes), dtype=np.int64)
+
     # Convert dtype, check shapes, dimensionality, and boundary values.
-    boxes, scores = check_correct_input(
-        boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold
+    boxes, scores, class_ids = check_correct_input(
+        boxes, scores, class_ids, iou_threshold=iou_threshold, score_threshold=score_threshold
     )
+
+    # Offset the bounding boxes per class, note that this func is not jitted, so applied here
+    boxes = offset_bboxes(boxes, class_ids)
+
     # Run NMS
-    keep = _nms(boxes, scores, iou_threshold=iou_threshold, score_threshold=score_threshold, tree_leaf_size=tree_leaf_size)
+    keep = _nms(
+        boxes,
+        scores,
+        iou_threshold=iou_threshold,
+        score_threshold=score_threshold,
+        tree_leaf_size=tree_leaf_size,
+    )
 
     return keep
 

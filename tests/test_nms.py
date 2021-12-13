@@ -6,8 +6,8 @@ from lsnms.nms import naive_nms
 from torchvision.ops import boxes as box_ops
 
 
-def datagen():
-    topleft = np.random.uniform(0.0, high=1_000, size=(10_000, 2))
+def datagen(n=10_000):
+    topleft = np.random.uniform(0.0, high=1_000, size=(n, 2))
     wh = np.random.uniform(15, 45, size=topleft.shape)
 
     boxes = np.concatenate([topleft, topleft + wh], axis=1)
@@ -25,6 +25,22 @@ def test_rtree_nms():
 
     # Compare sparse NMS
     k2 = nms(boxes, scores, 0.5, 0.0)
+
+    assert np.allclose(k1, k2)
+
+
+def test_rtree_multiclass_nms():
+
+    boxes, scores = datagen()
+    class_ids = np.random.randint(0, 50, size=len(boxes))
+
+    # Compare against torch
+    k1 = box_ops.batched_nms(
+        torch.tensor(boxes), torch.tensor(scores), torch.tensor(class_ids), 0.5
+    ).numpy()
+
+    # Compare sparse NMS
+    k2 = nms(boxes, scores, 0.5, 0.0, class_ids=class_ids)
 
     assert np.allclose(k1, k2)
 
