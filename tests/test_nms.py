@@ -29,6 +29,20 @@ def test_rtree_nms():
     assert np.allclose(k1, k2)
 
 
+def test_rtree_multiclass_nms():
+
+    boxes, scores = datagen()
+    class_ids = np.random.randint(0, 50, size=len(boxes))
+
+    # Compare against torch
+    k1 = box_ops.batched_nms(torch.tensor(boxes), torch.tensor(scores), torch.tensor(class_ids), 0.5).numpy()
+
+    # Compare sparse NMS
+    k2 = nms(boxes, scores, 0.5, 0.0, class_ids=class_ids)
+
+    assert np.allclose(k1, k2)
+
+
 def test_naive_nms():
 
     boxes, scores = datagen()
