@@ -64,8 +64,8 @@ def nms(
     boxes: np.array,
     scores: np.array,
     iou_threshold: float = 0.5,
-    class_ids: Optional[np.array] = None,
     score_threshold: float = 0.0,
+    class_ids: Optional[np.array] = None,
     cutoff_distance: Optional[int] = None,
     tree: Optional[str] = None,
     tree_leaf_size: int = 32,
@@ -88,12 +88,12 @@ def nms(
         this function must be applied class-wise.
     iou_threshold : float, optional
         Threshold used to consider two boxes to be overlapping, by default 0.5
+    score_threshold : float, optional
+        Threshold from which boxes are discarded, by default 0.0
     class_ids: np.array, optional
         One-dimensional integer array indicating the respective classes of the bboxes. If this
         is not None, a class-wise NMS will be applied. If None, all boxes are considered of the
         same class.
-    score_threshold : float, optional
-        Threshold from which boxes are discarded, by default 0.0
     cutoff_distance: int, optional
         DEPRECATED, used for compatibility with version 0.1.X.
         Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,

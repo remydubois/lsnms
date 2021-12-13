@@ -1,4 +1,5 @@
 from numba import njit, int64, float64
+from typing import Optional
 from numba.typed import Dict
 import math
 import numpy as np
@@ -406,7 +407,7 @@ def offset_bboxes(bboxes: np.array, class_ids: np.array):
     return bboxes + bboxes_offset
 
 
-def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: np.array):
+def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: Optional[np.array]):
     """
     Check arrays characteristics: dtype dimensionality and shape
     """
@@ -415,11 +416,12 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: np.array)
         raise ValueError(f"Boxes should a float64 array. Received {boxes.dtype}")
     if not scores.dtype == "float64":
         raise ValueError(f"Scores should a float64 array. Received {scores.dtype}")
-    if not np.can_cast(class_ids, np.integer) or class_ids.min() < 0:
-        raise ValueError(
-            f"Class ids should a positive integer array."
-            f"Received {class_ids.dtype} with min {class_ids.min()}"
-        )
+    if class_ids is not None:
+        if not np.can_cast(class_ids, np.integer) or class_ids.min() < 0:
+            raise ValueError(
+                f"Class ids should be a positive integer array. "
+                f"Received {class_ids.dtype} with min {class_ids.min()}"
+            )
 
     # Check shapes
     if boxes.ndim != 2 or boxes.shape[-1] != 4:
@@ -431,11 +433,12 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: np.array)
             f"Scores should be a one-dimensional vector of same size as boxes vector."
             f"Received object of shape {scores.shape}."
         )
-    if class_ids.ndim != 1 or len(class_ids) != len(boxes):
-        raise ValueError(
-            f"Scores should be a one-dimensional vector of same size as boxes vector."
-            f"Received object of shape {class_ids.shape}."
-        )
+    if class_ids is not None:
+        if class_ids.ndim != 1 or len(class_ids) != len(boxes):
+            raise ValueError(
+                f"Scores should be a one-dimensional vector of same size as boxes vector."
+                f"Received object of shape {class_ids.shape}."
+            )
 
     # Check that boxes are in correct orientation
     deltas = boxes[:, 2:] - boxes[:, :2]
@@ -446,7 +449,7 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: np.array)
 def check_correct_input(
     boxes: np.array,
     scores: np.array,
-    class_ids: np.array,
+    class_ids: Optional[np.array],
     iou_threshold: float,
     score_threshold: float,
 ):
@@ -456,7 +459,8 @@ def check_correct_input(
 
     boxes = np.asarray(boxes, dtype=np.float64)
     scores = np.asarray(scores, dtype=np.float64)
-    class_ids = np.asarray(class_ids)
+    if class_ids is not None:
+        class_ids = np.asarray(class_ids)
 
     check_correct_arrays(boxes, scores, class_ids)
 
@@ -466,4 +470,7 @@ def check_correct_input(
     if score_threshold < 0.0 or score_threshold > 1.0:
         raise ValueError(f"IoU threshold should be between 0. and 1. Received {score_threshold}.")
 
-    return boxes, scores, class_ids
+    if class_ids is not None:
+        return boxes, scores, class_ids
+    else:
+        return boxes, scores
