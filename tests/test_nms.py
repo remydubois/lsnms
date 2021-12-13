@@ -35,7 +35,9 @@ def test_rtree_multiclass_nms():
     class_ids = np.random.randint(0, 50, size=len(boxes))
 
     # Compare against torch
-    k1 = box_ops.batched_nms(torch.tensor(boxes), torch.tensor(scores), torch.tensor(class_ids), 0.5).numpy()
+    k1 = box_ops.batched_nms(
+        torch.tensor(boxes), torch.tensor(scores), torch.tensor(class_ids), 0.5
+    ).numpy()
 
     # Compare sparse NMS
     k2 = nms(boxes, scores, 0.5, 0.0, class_ids=class_ids)
