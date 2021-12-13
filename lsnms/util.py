@@ -417,7 +417,7 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: Optional[
     if not scores.dtype == "float64":
         raise ValueError(f"Scores should a float64 array. Received {scores.dtype}")
     if class_ids is not None:
-        if not np.can_cast(class_ids, np.integer) or class_ids.min() < 0:
+        if not np.can_cast(class_ids, np.int64) or class_ids.min() < 0:
             raise ValueError(
                 f"Class ids should be a positive integer array. "
                 f"Received {class_ids.dtype} with min {class_ids.min()}"
