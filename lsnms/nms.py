@@ -22,6 +22,9 @@ def _nms(
     # Discard boxes below score threshold right now to avoid building the tree on useless boxes
     boxes = boxes[scores > score_threshold]
 
+    if len(boxes) == 0:
+        return np.zeros(0, dtype=np.int64)
+
     # Build the BallTree
     rtree = RNode(boxes, tree_leaf_size, max_spread_axis(boxes), None)
     rtree.build()

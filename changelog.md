@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 0.3.1
+------------
+- Edge case where all box scores are zero (or all below threshold) is now handled (threw uggly error before)
+
+
 Version 0.3.0
 ------------
 - Added multiclass support for NMS

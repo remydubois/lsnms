@@ -29,6 +29,14 @@ def test_rtree_nms():
     assert np.allclose(k1, k2)
 
 
+def test_empty_nms():
+    boxes, scores = datagen()
+    # Put all the scores to zero artificially
+    keep = nms(boxes, scores * 0.)
+
+    assert keep.size == 0
+    
+
 def test_rtree_multiclass_nms():
 
     boxes, scores = datagen()
