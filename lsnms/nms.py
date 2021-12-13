@@ -75,6 +75,25 @@ def nms(
     This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
     The overlapping boxes are queried using a R-tree, ensuring a log (average case) complexity.
 
+    If `class_ids` is given (one class per object), a class-wise NMS will be applied. This is simply
+    done by offsetting the bounding boxes so that bboxes of different classes dont overlap.
+
+    ```python3
+    boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
+    scores = # one-dimensional array of confidence scores
+
+    keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0.)
+    ```
+    or
+    ```python3
+    boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
+    scores = # one-dimensional array of confidence scores
+    class_ids = # one-dimensional array of class indicators (one per object)
+    
+    keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0., class_ids=class_ids)
+    ```
+    
+
     Note that this implementation could be further optimized:
     - Memory management is quite poor: several back and forth list-to-numpy conversions happen
     - Some multi treading could be injected when comparing far appart clusters

@@ -26,7 +26,8 @@ Only dependencies are numpy and numba.
 import numpy as np
 from lsnms import nms, wbc
 
-# Create boxes: approx 30 pixels wide / high
+# Create boxes: approx 30 pixels wide / high in Pascal VOC format:
+# bbox = (x0, y0, x1, y1) with x1 > x0, y1 > y0
 image_size = 10_000
 n_predictions = 10_000
 topleft = np.random.uniform(0.0, high=image_size, size=(n_predictions, 2))
