@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lsnms"
-version = "0.3.1"
+version = "0.3.2"
 description = "Large Scale Non Maximum Suppression"
 authors = ["Rémy Dubois <remydubois14@gmail.com>"]
 license = "MIT"
@@ -11,12 +11,15 @@ classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Enginee
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.10"
-numpy = "1.19.5"
+numpy = "1.20.0"
 numba = "0.54.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "6.2.5"
 tox = "3.24.4"
+torch = "1.10.2"
+torchvision = "0.11.3"
+pillow = "9.3.0"
 
 [tool.black]
 line-length = 100

@@ -98,3 +98,23 @@ def test_warning_tree_arg():
     boxes, scores = datagen()
     with pytest.warns(None):
         nms(boxes, scores, 0.5, 0.1, tree="faketree")
+
+def test_issue_12():
+    # From https://github.com/remydubois/lsnms/issues/12
+    import numpy  as np 
+    from lsnms import nms  #v0.3.1
+    nms_test_dict_fail = {
+        'scores': np.array([0.03128776, 0.15489164, 0.05489164]),
+        'boxes': np.array([[ 623.47991943,  391.94015503,  675.83850098,  445.0836792 ],
+            [  11.48574257,   15.99506855, 1053.84313965, 1074.78381348],
+            [  11.48574257,   15.99506855, 1053.84313965, 1074.78381348]]),
+        'class_labels': np.array([ 1, 27, 23]),
+        'score_thresh': 0.1} 
+
+    keep = nms(
+                boxes=nms_test_dict_fail["boxes"],
+                scores=nms_test_dict_fail["scores"],
+                score_threshold=nms_test_dict_fail["score_thresh"],
+                class_ids=nms_test_dict_fail["class_labels"],
+            )   
+    assert len(keep)==1 

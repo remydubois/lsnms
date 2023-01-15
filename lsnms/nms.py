@@ -19,8 +19,10 @@ def _nms(
     """
     keep = []
 
-    # Discard boxes below score threshold right now to avoid building the tree on useless boxes
-    boxes = boxes[scores > score_threshold]
+    # Discard boxes and scores below score threshold right now to avoid building the tree on useless boxes
+    score_mask = scores > score_threshold
+    boxes = boxes[score_mask]
+    scores = scores[score_mask]
 
     if len(boxes) == 0:
         return np.zeros(0, dtype=np.int64)
