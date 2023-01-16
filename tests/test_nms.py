@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 import torch
+from torchvision.ops import boxes as box_ops
+
 from lsnms import nms
 from lsnms.nms import naive_nms
-from torchvision.ops import boxes as box_ops
 
 
 def test_rtree_nms(instances):
@@ -68,10 +69,11 @@ def test_rtree_multiclass_nms_non_null_threshold(instances, score_threshold):
     # Manually filter instances based on scores because torch's NMS does not do it
     torch_boxes = boxes[scores > score_threshold]
     torch_scores = scores[scores > score_threshold]
+    torch_class_ids = class_ids[scores > score_threshold]
 
     # Compare against torch
     k1 = box_ops.batched_nms(
-        torch.tensor(torch_boxes), torch.tensor(torch_scores), torch.tensor(class_ids), 0.5
+        torch.tensor(torch_boxes), torch.tensor(torch_scores), torch.tensor(torch_class_ids), 0.5
     ).numpy()
 
     # Compare sparse NMS
@@ -130,6 +132,7 @@ def test_warning_tree_arg(instances):
 def test_issue_12():
     # From https://github.com/remydubois/lsnms/issues/12
     import numpy as np
+
     from lsnms import nms  # v0.3.1
 
     nms_test_dict_fail = {

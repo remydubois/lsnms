@@ -9,3 +9,8 @@ repos:
     rev: stable
     hooks:
     - id: black
+-   repo: https://github.com/pycqa/isort
+    rev: v5.11.3
+    hooks:
+      - id: isort
+        name: isort (python)

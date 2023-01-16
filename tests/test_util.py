@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 from numba import njit
-from lsnms.util import offset_bboxes, box_englobing_boxes, intersection
+
 from lsnms.rtree import RTree
+from lsnms.util import box_englobing_boxes, intersection, offset_bboxes
 
 
 def datagen(n=10_000):
@@ -48,6 +50,7 @@ def test_offset_bboxes():
             assert_no_intersect(boxes_i, boxes_j)
 
 
+@pytest.mark.skip(reason="Visual test")
 def test_visual_offset_bboxes():
     import matplotlib.pyplot as plt
 
