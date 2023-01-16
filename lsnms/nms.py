@@ -1,9 +1,12 @@
-from typing import Optional
 import warnings
-from numba import njit
+from typing import Optional
+
 import numpy as np
-from lsnms.rtree import RTree, RNode
-from lsnms.util import area, intersection, check_correct_input, offset_bboxes, max_spread_axis
+from numba import njit
+
+from lsnms.rtree import RNode
+from lsnms.util import (area, check_correct_input, intersection,
+                        max_spread_axis, offset_bboxes)
 
 
 @njit(cache=False)
@@ -19,7 +22,8 @@ def _nms(
     """
     keep = []
 
-    # Discard boxes and scores below score threshold right now to avoid building the tree on useless boxes
+    # Discard boxes and scores below score threshold right now to avoid building the tree on
+    # useless boxes
     score_mask = scores > score_threshold
     boxes = boxes[score_mask]
     scores = scores[score_mask]
