@@ -40,5 +40,3 @@ Version 0.1.0
 - Both BallTree and KDTree are implemented for the sake of exhaustivity
 - A cutoff distance needs to be specified to discard boxes to distant one from the other
 - Compilation time at first use is quite long: 13 seconds and functions can not be precompiled due to recursivity.
-
-

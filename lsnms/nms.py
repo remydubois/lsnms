@@ -94,10 +94,10 @@ def nms(
     boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
     scores = # one-dimensional array of confidence scores
     class_ids = # one-dimensional array of class indicators (one per object)
-    
+
     keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0., class_ids=class_ids)
     ```
-    
+
 
     Note that this implementation could be further optimized:
     - Memory management is quite poor: several back and forth list-to-numpy conversions happen

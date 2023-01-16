@@ -77,7 +77,7 @@ def distance_to_hypersphere(X, centroid, radius):
         Distance to the sphere.
     """
     centroid_dist = rdist(X, centroid)
-    return max(0, centroid_dist ** 0.5 - radius ** 0.5) ** 2
+    return max(0, centroid_dist**0.5 - radius**0.5) ** 2
 
 
 @njit(cache=True)
