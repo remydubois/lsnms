@@ -1,18 +1,16 @@
-from timeit import Timer, default_timer
+from collections import defaultdict
+from timeit import Timer
 
 import matplotlib.pyplot as plt
-import torch
-from collections import defaultdict
 import numpy as np
-from lsnms import nms
-from lsnms.nms import naive_nms
-
-from lsnms.rtree import RTree
+import torch
 from sklearn.neighbors import KDTree as skKDT
 from torchvision.ops import boxes as box_ops
 from tqdm import tqdm
-import time
-from pathlib import Path
+
+from lsnms import nms
+from lsnms.nms import naive_nms
+from lsnms.rtree import RTree
 
 
 def intersection(boxA, boxB):
@@ -122,7 +120,6 @@ def test_tree_query_timing():
         f, ax = plt.subplots(figsize=(8, 8))
         ax.plot(ns, timings["tree"], label="box tree", marker="o")
         ax.plot(ns, timings["linear"], label="linear", marker="o")
-        # ax.plot(ns, timings["sktree"], label="sklearn's kdtree indexed\non box corners", marker="o")
         ax.set_xlabel("Number of boxes to intersect with", c="k")
         ax.set_ylabel(f"Elapsed time (us) (mean of {repeats} runs)")
         ax.set_title("LSNMS box tree intersect vs naive intersect timing")

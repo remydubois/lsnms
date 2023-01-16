@@ -1,8 +1,8 @@
-from numba import njit, int64, float64
-from typing import Optional
-from numba.typed import Dict
 import math
+from typing import Optional
+
 import numpy as np
+from numba import njit
 
 
 @njit(cache=True)

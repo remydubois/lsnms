@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 from numba import njit
 
-from lsnms.rtree import RTree
 from lsnms.util import box_englobing_boxes, intersection, offset_bboxes
 
 
