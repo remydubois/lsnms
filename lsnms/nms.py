@@ -6,7 +6,7 @@ from lsnms.rtree import RTree, RNode
 from lsnms.util import area, intersection, check_correct_input, offset_bboxes, max_spread_axis
 
 
-@njit(cache=False)
+@njit(cache=True)
 def _nms(
     boxes: np.array,
     scores: np.array,
@@ -48,7 +48,7 @@ def _nms(
         boxA = boxes[current_idx]
 
         # Query the overlapping boxes and return their intersection
-        query, query_intersections = rtree.intersect(boxA, 0.0)
+        query, query_intersections = rtree.intersect(boxA, 1.0)
 
         for query_idx, overlap in zip(query, query_intersections):
             if not to_consider[query_idx]:

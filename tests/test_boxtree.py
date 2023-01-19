@@ -1,5 +1,5 @@
 import numpy as np
-from lsnms.rtree import RTree
+from lsnms.rtree import RTree, query, RNode
 
 
 def intersection(boxA, boxB):
@@ -34,3 +34,16 @@ def test_intersect_tree():
         out_inter = np.array([inter for i, inter in enumerate(np_intersect) if i not in indices])
         np.testing.assert_allclose(in_inter, intersections)
         np.testing.assert_array_less(out_inter, min_area)
+
+
+def test_simple_query():
+    rng = np.random.RandomState(1)
+    topleft = rng.uniform(0.0, high=1_000, size=(1000, 2))
+    wh = rng.uniform(15, 45, size=topleft.shape)
+
+    boxes = np.concatenate([topleft, topleft + wh], axis=1)
+    scores = rng.uniform(0.1, 1.0, size=len(topleft))
+
+    tree = RNode(boxes, 16, 0, None)
+    tree.build()
+    query(tree, boxes[0], min_area=1.)
