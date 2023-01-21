@@ -24,6 +24,9 @@ pillow = "9.3.0"
 [tool.black]
 line-length = 100
 
+[tool.isort]
+profile = "black"
+
 [build-system]
 requires = ["poetry-core>=1.0.0", "setuptools>=30.3.0,<50",]
 build-backend = "poetry.core.masonry.api"

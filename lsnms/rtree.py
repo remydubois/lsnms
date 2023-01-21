@@ -5,8 +5,12 @@ import numpy as np
 from numba import boolean, deferred_type, float64, int64, njit, optional
 from numba.experimental import jitclass
 
-from lsnms.util import (box_englobing_boxes, intersection, max_spread_axis,
-                        split_along_axis)
+from lsnms.util import (
+    box_englobing_boxes,
+    intersection,
+    max_spread_axis,
+    split_along_axis,
+)
 
 specs = OrderedDict()
 node_type = deferred_type()
