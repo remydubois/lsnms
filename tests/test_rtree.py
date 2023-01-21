@@ -1,5 +1,7 @@
 import numpy as np
-from lsnms.rtree import RTree
+import pytest
+
+from lsnms.rtree import RNode, RTree
 
 
 def intersection(boxA, boxB):
@@ -34,3 +36,15 @@ def test_intersect_tree():
         out_inter = np.array([inter for i, inter in enumerate(np_intersect) if i not in indices])
         np.testing.assert_allclose(in_inter, intersections)
         np.testing.assert_array_less(out_inter, min_area)
+
+
+def test_build_odd_tree(instances):
+    boxes, _ = instances
+    with pytest.raises(AssertionError):
+        _ = RTree(boxes, leaf_size=0)
+
+
+def test_build_rnode_default_args(instances):
+    boxes, _ = instances
+
+    _ = RNode(boxes)

@@ -1,8 +1,8 @@
-from numba import njit, int64, float64
-from typing import Optional
-from numba.typed import Dict
 import math
+from typing import Optional
+
 import numpy as np
+from numba import njit
 
 
 @njit(cache=True)
@@ -77,7 +77,7 @@ def distance_to_hypersphere(X, centroid, radius):
         Distance to the sphere.
     """
     centroid_dist = rdist(X, centroid)
-    return max(0, centroid_dist ** 0.5 - radius ** 0.5) ** 2
+    return max(0, centroid_dist**0.5 - radius**0.5) ** 2
 
 
 @njit(cache=True)

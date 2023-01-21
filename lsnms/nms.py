@@ -1,9 +1,16 @@
 from typing import Optional
-import warnings
-from numba import njit
+
 import numpy as np
-from lsnms.rtree import RTree, RNode
-from lsnms.util import area, intersection, check_correct_input, offset_bboxes, max_spread_axis
+from numba import njit
+
+from lsnms.rtree import RNode
+from lsnms.util import (
+    area,
+    check_correct_input,
+    intersection,
+    max_spread_axis,
+    offset_bboxes,
+)
 
 
 @njit(cache=False)
@@ -12,21 +19,24 @@ def _nms(
     scores: np.array,
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
-    tree_leaf_size: int = 32,
+    rtree_leaf_size: int = 32,
 ) -> np.array:
     """
     See `lsnms.nms` docstring.
     """
     keep = []
 
-    # Discard boxes below score threshold right now to avoid building the tree on useless boxes
-    boxes = boxes[scores > score_threshold]
+    # Discard boxes and scores below score threshold right now to avoid building the tree on
+    # useless boxes
+    score_mask = scores > score_threshold
+    boxes = boxes[score_mask]
+    scores = scores[score_mask]
 
     if len(boxes) == 0:
         return np.zeros(0, dtype=np.int64)
 
-    # Build the BallTree
-    rtree = RNode(boxes, tree_leaf_size, max_spread_axis(boxes), None)
+    # Build the RTree
+    rtree = RNode(boxes, rtree_leaf_size, max_spread_axis(boxes), None)
     rtree.build()
 
     # Compute the areas once and for all: avoid recomputing it at each step
@@ -48,7 +58,8 @@ def _nms(
         boxA = boxes[current_idx]
 
         # Query the overlapping boxes and return their intersection
-        query, query_intersections = rtree.intersect(boxA, 0.0)
+        # return only boxes which have at least one pixel of overlap with the box of interest
+        query, query_intersections = rtree.intersect(boxA, 1.0)
 
         for query_idx, overlap in zip(query, query_intersections):
             if not to_consider[query_idx]:
@@ -69,9 +80,7 @@ def nms(
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
     class_ids: Optional[np.array] = None,
-    cutoff_distance: Optional[int] = None,
-    tree: Optional[str] = None,
-    tree_leaf_size: int = 32,
+    rtree_leaf_size: int = 32,
 ) -> np.array:
     """
     Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
@@ -92,10 +101,10 @@ def nms(
     boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
     scores = # one-dimensional array of confidence scores
     class_ids = # one-dimensional array of class indicators (one per object)
-    
+
     keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0., class_ids=class_ids)
     ```
-    
+
 
     Note that this implementation could be further optimized:
     - Memory management is quite poor: several back and forth list-to-numpy conversions happen
@@ -116,14 +125,7 @@ def nms(
         One-dimensional integer array indicating the respective classes of the bboxes. If this
         is not None, a class-wise NMS will be applied. If None, all boxes are considered of the
         same class.
-    cutoff_distance: int, optional
-        DEPRECATED, used for compatibility with version 0.1.X.
-        Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
-        which is parameter free.
-    tree: str, optional
-        DEPRECATED, used for compatibility with version 0.1.X.
-        Since version 0.2.X, the tree used is a R-Tree.
-    tree_leaf_size: int, optional
+    rtree_leaf_size: int, optional
         The leaf size parameter of the underlying R-Tree built for box query.
 
     Returns
@@ -131,11 +133,6 @@ def nms(
     np.array
         Indices of boxes kept, in decreasing order of confidence score.
     """
-    if cutoff_distance is not None or tree is not None:
-        warnings.warn(
-            "Both `cutoff_distance` and `tree` are deprecated and effect-less from version"
-            "0.2.X, since R-Tree is used by default to query overlapping boxes."
-        )
 
     if class_ids is None:
         class_ids = np.zeros(len(boxes), dtype=np.int64)
@@ -154,7 +151,7 @@ def nms(
         scores,
         iou_threshold=iou_threshold,
         score_threshold=score_threshold,
-        tree_leaf_size=tree_leaf_size,
+        rtree_leaf_size=rtree_leaf_size,
     )
 
     return keep

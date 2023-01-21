@@ -1,16 +1,16 @@
-import numpy as np
-from numba import njit
 from collections import OrderedDict
 from typing import List
-from numba.experimental import jitclass
-from numba import deferred_type, optional, int64, float64, boolean
-from lsnms.util import (
-    intersection,
-    split_along_axis,
-    box_englobing_boxes,
-    max_spread_axis,
-)
 
+import numpy as np
+from numba import boolean, deferred_type, float64, int64, njit, optional
+from numba.experimental import jitclass
+
+from lsnms.util import (
+    box_englobing_boxes,
+    intersection,
+    max_spread_axis,
+    split_along_axis,
+)
 
 specs = OrderedDict()
 node_type = deferred_type()
@@ -57,6 +57,7 @@ class RNode:
         self.data = data
         self.axis = axis
         # Quick sanity checks
+        assert leaf_size > 0, "Leaf size must be strictly positive"
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"
@@ -215,10 +216,12 @@ def intersect(
     X : np.array
         Query box (one box).
     indices_buffer : list
-        List of currently-gathered neighbors. Stores in-place the neighbor indices along the search process
+        List of currently-gathered neighbors. Stores in-place the neighbor indices along the
+        search process
     intersection_buffer : list
         List of currently-gathered neighbor intersection with the query box.
-        Since the redundancy criterion is intersection over union, I store it here to avoid recomputing it later.
+        Since the redundancy criterion is intersection over union, I store it here to avoid
+        recomputing it later.
     inter_UB : float, optional
         Intersection upper bound: this is the intersection of X with the current node's bbox. By
         definition, this is the highest intersection a box contained in this node can get with X.
