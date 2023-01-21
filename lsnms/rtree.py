@@ -57,6 +57,7 @@ class RNode:
         self.data = data
         self.axis = axis
         # Quick sanity checks
+        assert leaf_size > 0, "Leaf size must be strictly positive"
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"

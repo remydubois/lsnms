@@ -5,7 +5,9 @@ Version 0.3.2
 ------------
 - Fixed issue https://github.com/remydubois/lsnms/issues/12, by masking scores as well as boxes.
 - Added torch and torchvision as proper dev dependencies
-- Fixed Pillow version to 9.3.0 in dev dependencies because 9.4.0 does not compile on my mbp (see https://github.com/python-pillow/Pillow/issues/6862)
+- Fixed Pillow version (dev dep) to 9.3.0 in dev dependencies because 9.4.0 does not compile on my mbp (see https://github.com/python-pillow/Pillow/issues/6862)
+- Removed deprecated arguments: `cutoff_distance` and `tree`. Removed associated tests.
+- Added sanity check to ensure `leaf_size` is strictly positive.
 
 
 Version 0.3.1
