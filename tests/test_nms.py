@@ -1,9 +1,11 @@
-from socket import IP_DEFAULT_MULTICAST_LOOP
+from multiprocessing import Process
+from time import perf_counter
 import numpy as np
 import pytest
 import torch
 from lsnms import nms
 from lsnms.nms import naive_nms
+from lsnms.util import clear_cache
 from torchvision.ops import boxes as box_ops
 
 
@@ -99,3 +101,30 @@ def test_warning_tree_arg():
     boxes, scores = datagen()
     with pytest.warns(None):
         nms(boxes, scores, 0.5, 0.1, tree="faketree")
+
+
+def routine():
+    boxes, scores = datagen(n=10)
+    _ = nms(boxes, scores, 0.5, score_threshold=0.)
+    return
+
+
+def test_caching():
+
+    clear_cache()
+    process = Process(target=routine)
+    process2 = Process(target=routine)
+
+    st = perf_counter()
+    process.start()
+    process.join()
+    delta_0 = perf_counter() - st
+    
+    st = perf_counter()
+    process2.start()
+    process2.join()
+    delta_1 = perf_counter() - st
+    
+    assert delta_1 * 3 < delta_0, f"Compilation did not cache. First call: {delta_0:.4f}, second call: {delta_1:.4f}"
+    
+

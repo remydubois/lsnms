@@ -1,11 +1,12 @@
 from numba import njit, int64, float64
+from pathlib import Path
 from typing import Optional
 from numba.typed import Dict
 import math
 import numpy as np
 
 
-@njit(cache=True)
+@njit(cache=False)
 def area(box):
     """
     Computes bbox(es) area: is vectorized.
@@ -23,7 +24,7 @@ def area(box):
     return (box[..., 2] - box[..., 0]) * (box[..., 3] - box[..., 1])
 
 
-@njit(cache=True, fastmath=True)
+@njit(cache=False, fastmath=True)
 def intersection(boxA, boxB):
     """
     Compute area of intersection of two boxes
@@ -56,7 +57,7 @@ def intersection(boxA, boxB):
     return dx * dy
 
 
-@njit(cache=True)
+@njit(cache=False)
 def distance_to_hypersphere(X, centroid, radius):
     """
     Computes the smallest square distance from one point to a sphere defined by its centroid and
@@ -80,7 +81,7 @@ def distance_to_hypersphere(X, centroid, radius):
     return max(0, centroid_dist ** 0.5 - radius ** 0.5) ** 2
 
 
-@njit(cache=True)
+@njit(cache=False)
 def rdist(X1, X2):
     """
     Simple square distance between two points.
@@ -92,7 +93,7 @@ def rdist(X1, X2):
     return d_sq
 
 
-@njit(cache=True)
+@njit(cache=False)
 def englobing_sphere(data):
     """
     Compute parameters (centroid and radius) of the smallest sphere
@@ -116,7 +117,7 @@ def englobing_sphere(data):
     return centroid, max_radius
 
 
-@njit(cache=True)
+@njit(cache=False)
 def max_spread_axis(data):
     """
     Returns the axis of maximal spread.
@@ -141,7 +142,7 @@ def max_spread_axis(data):
     return splitdim
 
 
-@njit(cache=True)
+@njit(cache=False)
 def split_along_axis(data, axis):
     """
     Splits the data along axis in two datasets of equal size.
@@ -176,7 +177,7 @@ def split_along_axis(data, axis):
     # return left, right
 
 
-@njit(cache=True)
+@njit(cache=False)
 def distance_to_hyperplan(x, box):
     """
     Computes distance from a point to a hyperplan defined by its bounding box.
@@ -201,7 +202,7 @@ def distance_to_hyperplan(x, box):
     return d_sq
 
 
-@njit(cache=True)
+@njit(cache=False)
 def englobing_box(data):
     """
     Computes coordinates of the smallest bounding box containing all
@@ -224,7 +225,7 @@ def englobing_box(data):
     return np.array(bounds)
 
 
-@njit(cache=True)
+@njit(cache=False)
 def box_englobing_boxes(boxes):
     """
     Computes coordinates of the smallest bounding box containing all
@@ -251,7 +252,7 @@ def box_englobing_boxes(boxes):
     return bounds
 
 
-@njit(cache=True)
+@njit(cache=False)
 def _partition(A, low, high, indices):
     """
     This is straight from numba master:
@@ -298,7 +299,7 @@ def _partition(A, low, high, indices):
     return i
 
 
-@njit(cache=True)
+@njit(cache=False)
 def _select(arry, k, low, high):
     """
     This is straight from numba master:
@@ -317,7 +318,7 @@ def _select(arry, k, low, high):
     return indices, i
 
 
-@njit(cache=True)
+@njit(cache=False)
 def median_argsplit(arry):
     """
     Splits `arry` into two sets of indices, indicating values
@@ -474,3 +475,15 @@ def check_correct_input(
         return boxes, scores, class_ids
     else:
         return boxes, scores
+
+
+def clear_cache():
+    """
+    Clears Numba's cache files: those are compiled functions that might need to be deleted 
+    between lsnms updates.
+    """
+    cache_repo = Path(__file__).parent / "__pycache__"
+    numba_cache_files = cache_repo.glob('*.nb*')
+    for file in numba_cache_files:
+        file.unlink(missing_ok=True)
+        

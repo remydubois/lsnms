@@ -85,6 +85,8 @@ class RNode:
         self.left = None
         self.right = None
 
+        self.build()
+
     def split(self):
         """
         Splits a node into two children nodes.
@@ -130,7 +132,18 @@ class RNode:
         which calls itself, the workaround used here.
         """
         # Reccursively attach children to the parent
-        build(self)
+        # build(self)
+        nodes = numba.types.ListType([self])
+        while len(nodes):
+            current = nodes.pop(-1)
+            if not current.is_leaf:
+                left, right = current.split()
+                current.assign_left(left)
+                current.assign_right(right)
+                # build(current.left)
+                # build(current.right)
+                nodes.append(left)
+                nodes.append(right)
 
     def intersect(self, X, min_area=1.0):
         """
@@ -161,7 +174,7 @@ class RNode:
         #     True,
         #     min_area,
         # )
-        indices_buffer, intersections_buffer = query(tree=self, X=X, min_area=1.)
+        indices_buffer, intersections_buffer = query(tree=self, X=X, min_area=min_area)
 
         indices_buffer = np.array(indices_buffer)
         intersections_buffer = np.array(intersections_buffer)
@@ -172,29 +185,29 @@ class RNode:
 node_type.define(RNode.class_type.instance_type)
 
 
-@njit(fastmath=True)
-def build(root):
-    """
-    Reccursive building process.
-    Since jit methods can not be recursive, it has to be a detached function.
-    Otherwise, it would just be included inside the Node.__init__ method.
+# @njit(fastmath=True)
+# def build(root):
+#     """
+#     Reccursive building process.
+#     Since jit methods can not be recursive, it has to be a detached function.
+#     Otherwise, it would just be included inside the Node.__init__ method.
 
-    Parameters
-    ----------
-    root : Nodetimiings
-        Current node to split if needed
-    """
-    nodes = numba.types.ListType([root])
-    while len(nodes):
-        current = nodes.pop(-1)
-        if not current.is_leaf:
-            left, right = current.split()
-            current.assign_left(left)
-            current.assign_right(right)
-            # build(current.left)
-            # build(current.right)
-            nodes.append(left)
-            nodes.append(right)
+#     Parameters
+#     ----------
+#     root : Nodetimiings
+#         Current node to split if needed
+#     """
+#     nodes = numba.types.ListType([root])
+#     while len(nodes):
+#         current = nodes.pop(-1)
+#         if not current.is_leaf:
+#             left, right = current.split()
+#             current.assign_left(left)
+#             current.assign_right(right)
+#             # build(current.left)
+#             # build(current.right)
+#             nodes.append(left)
+#             nodes.append(right)
 
 
 @njit(cache=False)
