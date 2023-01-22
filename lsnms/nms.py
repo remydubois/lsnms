@@ -27,7 +27,7 @@ def _nms(
 
     # Build the BallTree
     rtree = RNode(boxes, tree_leaf_size, max_spread_axis(boxes), None)
-    # rtree.build()
+    rtree.build()
 
     # Compute the areas once and for all: avoid recomputing it at each step
     areas = area(boxes)

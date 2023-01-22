@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from numba import njit
 from lsnms.util import offset_bboxes, box_englobing_boxes, intersection
 from lsnms.rtree import RTree
@@ -48,6 +49,7 @@ def test_offset_bboxes():
             assert_no_intersect(boxes_i, boxes_j)
 
 
+@pytest.mark.skip('Visual test')
 def test_visual_offset_bboxes():
     import matplotlib.pyplot as plt
 

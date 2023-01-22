@@ -1,10 +1,7 @@
-import numba
 import numpy as np
-from numba import njit
 from collections import OrderedDict
-from typing import List
 from numba.experimental import jitclass
-from numba import deferred_type, optional, int64, float64, boolean
+from numba import deferred_type, optional, int64, float64, boolean, typed
 from lsnms.util import (
     intersection,
     split_along_axis,
@@ -21,6 +18,7 @@ specs["axis"] = int64
 specs["dimensionality"] = int64
 specs["indices"] = optional(int64[:])
 specs["is_leaf"] = boolean
+specs["_built"] = boolean
 specs["leaf_size"] = int64
 specs["left"] = optional(node_type)
 specs["right"] = optional(node_type)
@@ -84,8 +82,7 @@ class RNode:
         # Pre-assign empty children for typing
         self.left = None
         self.right = None
-
-        self.build()
+        self._built = False
 
     def split(self):
         """
@@ -110,19 +107,6 @@ class RNode:
         )
         return left_node, right_node
 
-    def assign_left(self, node):
-        """
-        Assigns the left node.
-        Strangely enough, this needs to be delegated to an explicit method.
-        """
-        self.left = node
-
-    def assign_right(self, node):
-        """
-        Assigns the right node.
-        Strangely enough, this needs to be delegated to an explicit method.
-        """
-        self.right = node
 
     def build(self):
         """
@@ -133,17 +117,20 @@ class RNode:
         """
         # Reccursively attach children to the parent
         # build(self)
-        nodes = numba.types.ListType([self])
+        nodes = typed.List([self])
         while len(nodes):
             current = nodes.pop(-1)
             if not current.is_leaf:
                 left, right = current.split()
-                current.assign_left(left)
-                current.assign_right(right)
-                # build(current.left)
-                # build(current.right)
+                
+                # Assign children
+                current.left = left
+                current.right = right
+                
+                # Append children to the list of nodes to split
                 nodes.append(left)
                 nodes.append(right)
+                current._built = True
 
     def intersect(self, X, min_area=1.0):
         """
@@ -155,177 +142,62 @@ class RNode:
         X : np.array
             1-dimensional numpy array of the box to find overlaps with
         min_area : float, optional
-            Minimum area to consider overlap significant, by default 1.0
+            Minimum area to consider overlap significant, by default 1.0 (pixel)
 
         Returns
         -------
         Tuple[np.array]
             Indices of boxes overlapping with X, and area (in the same order) of the overlaps
         """
-        # indices_buffer = [0][:0]
-        # intersections_buffer = [0.0][:0]
+        if not self._built:
+            raise ValueError("Tree needs to be built before being queried. Call RNode.build first.")
+        
+        # Initialize buffers to hold indices of intersects and corresponding areas
+        indices_buffer = typed.List.empty_list(int64)
+        intersections_buffer = typed.List.empty_list(float64)
 
-        # intersect(
-        #     self,
-        #     X,
-        #     indices_buffer,
-        #     intersections_buffer,
-        #     1.0,
-        #     True,
-        #     min_area,
-        # )
-        indices_buffer, intersections_buffer = query(tree=self, X=X, min_area=min_area)
-
-        indices_buffer = np.array(indices_buffer)
-        intersections_buffer = np.array(intersections_buffer)
-
+        # This list will, by construction, be sorted by increasing area
+        # of intersection with the box queried
+        to_visit = typed.List([self])
+        while len(to_visit):
+            # Take the last node in list, which, by design, is the one having the highest
+            # intersection with the box queried
+            current_node = to_visit.pop(-1)
+            
+            # Compute the area of intersection upper bound
+            # between this node and the bbox queried
+            node_inter_UB = intersection(X, current_node.bbox)
+            
+            # If the upper bound is smaller than the minimal requested aread
+            # by design all the bboxes contained in this node will
+            # have an intersection too small
+            if node_inter_UB < min_area:
+                continue
+            else:
+                if not current_node.is_leaf:
+                    left_UB = intersection(X, current_node.left.bbox)
+                    right_UB = intersection(X, current_node.right.bbox)
+                    
+                    # Order the children by increasing area of intersection
+                    if left_UB > right_UB:
+                        to_visit.append(current_node.right)
+                        to_visit.append(current_node.left)
+                    else:
+                        to_visit.append(current_node.left)
+                        to_visit.append(current_node.right)
+                else:
+                    # If it's leaf, simply review all the bboxes contained inside the node
+                    for i, y in zip(current_node.indices, current_node.data):
+                        inter = intersection(X, y)
+                        if inter > min_area:
+                            
+                            indices_buffer.append(i)
+                            intersections_buffer.append(inter)
+        
         return indices_buffer, intersections_buffer
 
 
 node_type.define(RNode.class_type.instance_type)
-
-
-# @njit(fastmath=True)
-# def build(root):
-#     """
-#     Reccursive building process.
-#     Since jit methods can not be recursive, it has to be a detached function.
-#     Otherwise, it would just be included inside the Node.__init__ method.
-
-#     Parameters
-#     ----------
-#     root : Nodetimiings
-#         Current node to split if needed
-#     """
-#     nodes = numba.types.ListType([root])
-#     while len(nodes):
-#         current = nodes.pop(-1)
-#         if not current.is_leaf:
-#             left, right = current.split()
-#             current.assign_left(left)
-#             current.assign_right(right)
-#             # build(current.left)
-#             # build(current.right)
-#             nodes.append(left)
-#             nodes.append(right)
-
-
-@njit(cache=False)
-def query(tree: RNode, X: np.array, min_area: float=1.0):
-
-    # Initialize buffers to hold indices of intersects and corresponding areas
-    indices_buffer = [0][:0]
-    intersections_buffer = [0.][:0]
-
-    # This list will by construction be sorted by increasing area
-    # of intersection with the box queried
-    # to_visit = [tree]
-    to_visit = numba.types.ListType([tree])
-    while len(to_visit):
-        # Take the last node in list, which, by design, is the one having the highest
-        # intersection with the box queried
-        current_node = to_visit.pop(-1)
-        # Compute the area of intersection upper bound
-        # between this node and the bbox queried
-        node_inter_UB = intersection(X, current_node.bbox)
-        
-        # If the upper bound is smaller than the minimal requested aread
-        # by design all the bboxes contained in this node will
-        # have an intersection too small
-        if node_inter_UB < min_area:
-            continue
-        else:
-            if not current_node.is_leaf:
-                left_UB = intersection(X, current_node.left.bbox)
-                right_UB = intersection(X, current_node.right.bbox)
-                
-                # Order the children by increasing area of intersection
-                if left_UB > right_UB:
-                    to_visit.append(current_node.right)
-                    to_visit.append(current_node.left)
-                else:
-                    to_visit.append(current_node.left)
-                    to_visit.append(current_node.right)
-            else:
-                # If it's leaf, simply review all the bboxes contained inside the node
-                for i, y in zip(current_node.indices, current_node.data):
-                    inter = intersection(X, y)
-                    if inter > min_area:
-                        # buffer.append((inter, i))
-                        indices_buffer.append(i)
-                        intersections_buffer.append(inter)
-
-    return indices_buffer, intersections_buffer
-
-
-@njit(fastmath=True)
-def intersect(
-    node: RNode,
-    X: np.array,
-    indices_buffer: List,
-    intersections_buffer: List,
-    inter_UB: float = 1.0,
-    is_root: bool = True,
-    min_area: float = 0.0,
-):
-    """
-    This function should not be used as-is: jitted-class methods can not be recursive.
-    The recursive query process is delegated here.
-
-    This is a depth-first search: by ensuring that one chooses the closest
-    node first, the algorithm will consequently first go to the node containing the point (if any)
-    and then go backward in neighbors node, trimming each node too far from the `max_radius` given.
-
-    Parameters
-    ----------
-    node: Node
-        Currently visited node
-    X : np.array
-        Query box (one box).
-    indices_buffer : list
-        List of currently-gathered neighbors. Stores in-place the neighbor indices along the search process
-    intersection_buffer : list
-        List of currently-gathered neighbor intersection with the query box.
-        Since the redundancy criterion is intersection over union, I store it here to avoid recomputing it later.
-    inter_UB : float, optional
-        Intersection upper bound: this is the intersection of X with the current node's bbox. By
-        definition, this is the highest intersection a box contained in this node can get with X.
-    is_root : bool, optional
-        Whether the currently visited node is root, by default True
-    """
-    if is_root:
-        # If first call, no lower bound distance has already been computed
-        inter_UB = intersection(X, node.bbox)
-
-    # By definition, each box contained inside this node has an intersection with the current bbox
-    # of less than the intersection with the node's englobing bounding box.
-    if inter_UB <= min_area:
-        return
-
-    # If it's a leaf: check points inside
-    elif node.is_leaf:
-        for i, y in zip(node.indices, node.data):
-            inter = intersection(X, y)
-            if inter > min_area:
-                # buffer.append((inter, i))
-                indices_buffer.append(i)
-                intersections_buffer.append(inter)
-
-    # Else, continue search
-    # Going for the node with highest intersection first ensures a depth-first search
-    else:
-        left_UB = intersection(X, node.left.bbox)
-        right_UB = intersection(X, node.right.bbox)
-        if left_UB > right_UB:
-            intersect(node.left, X, indices_buffer, intersections_buffer, left_UB, False, min_area)
-            intersect(
-                node.right, X, indices_buffer, intersections_buffer, right_UB, False, min_area
-            )
-        else:
-            intersect(
-                node.right, X, indices_buffer, intersections_buffer, right_UB, False, min_area
-            )
-            intersect(node.left, X, indices_buffer, intersections_buffer, left_UB, False, min_area)
 
 
 specs = OrderedDict()

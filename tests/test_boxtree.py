@@ -1,5 +1,5 @@
 import numpy as np
-from lsnms.rtree import RTree, query, RNode
+from lsnms.rtree import RTree, RNode
 
 
 def intersection(boxA, boxB):
@@ -46,4 +46,4 @@ def test_simple_query():
 
     tree = RNode(boxes, 16, 0, None)
     tree.build()
-    query(tree, boxes[0], min_area=1.)
+    tree.intersect(boxes[0], 1.)

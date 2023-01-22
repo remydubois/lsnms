@@ -125,6 +125,6 @@ def test_caching():
     process2.join()
     delta_1 = perf_counter() - st
     
-    assert delta_1 * 3 < delta_0, f"Compilation did not cache. First call: {delta_0:.4f}, second call: {delta_1:.4f}"
+    assert delta_1 * 3 < delta_0, f"Compilation did not cache. First call: {delta_0:.2f}s, second call: {delta_1:.2f}s"
     
 
