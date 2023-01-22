@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import List, Tuple
 
 import numpy as np
 from numba import boolean, deferred_type, float64, int64, optional, typed
@@ -23,6 +24,7 @@ specs["_built"] = boolean
 specs["leaf_size"] = int64
 specs["left"] = optional(node_type)
 specs["right"] = optional(node_type)
+specs["verbose"] = int64
 
 
 @jitclass(specs)
@@ -52,7 +54,14 @@ class RNode:
     ```
     """
 
-    def __init__(self, data, leaf_size=16, axis=0, indices=None):
+    def __init__(
+        self,
+        data: np.ndarray,
+        leaf_size: int = 16,
+        axis: int = 0,
+        indices: np.ndarray = None,
+        verbose: int = 0,
+    ):
         # Stores the data
         self.data = data
         self.axis = axis
@@ -61,6 +70,7 @@ class RNode:
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"
+        assert axis >= 0 and axis < data.ndim, "Axis should indicate the dimension to slice"
 
         self.dimensionality = data.shape[-1] // 2
 
@@ -85,6 +95,7 @@ class RNode:
         self.left = None
         self.right = None
         self._built = False
+        self.verbose = verbose
 
     def split(self):
         """
@@ -92,8 +103,8 @@ class RNode:
 
         Returns
         -------
-        Tuple[Node]
-            Left children and right children
+        Tuple[RNode]
+            Left child and right child
         """
         # Split the boxes using top left corner
         left_indices, right_indices = split_along_axis(
@@ -102,14 +113,22 @@ class RNode:
         # Simply reference the data in the children, do not copy arrays
         next_axis = (self.axis + 1) % self.dimensionality
         left_node = RNode(
-            self.data[left_indices], self.leaf_size, next_axis, self.indices[left_indices]
+            self.data[left_indices],
+            self.leaf_size,
+            next_axis,
+            self.indices[left_indices],
+            self.verbose,
         )
         right_node = RNode(
-            self.data[right_indices], self.leaf_size, next_axis, self.indices[right_indices]
+            self.data[right_indices],
+            self.leaf_size,
+            next_axis,
+            self.indices[right_indices],
+            self.verbose,
         )
         return left_node, right_node
 
-    def build(self):
+    def build(self) -> None:
         """
         Reccursively build the children.
         Jit methods can not be explicitely recursive:
@@ -133,7 +152,7 @@ class RNode:
                 nodes.append(right)
                 current._built = True
 
-    def intersect(self, X, min_area=1.0):
+    def intersect(self, X, min_area=1.0) -> Tuple[List[int], List[float]]:
         """
         Returns, among the indexed bboxes, the ones intersecting with more than `min_area`
         with the given bbox. The search is depth-first and is of log complexity.
@@ -147,8 +166,9 @@ class RNode:
 
         Returns
         -------
-        Tuple[np.array]
-            Indices of boxes overlapping with X, and area (in the same order) of the overlaps
+        Tuple[List]
+            Indices of boxes overlapping with X, and area (in the same order) of the overlaps,
+            as lists
         """
         if not self._built:
             raise ValueError("Tree needs to be built before being queried. Call RNode.build first.")
@@ -173,9 +193,27 @@ class RNode:
             # by design all the bboxes contained in this node will
             # have an intersection too small
             if node_inter_UB < min_area:
+                if self.verbose >= 10:
+                    print(
+                        "[RTree] - Query: Node",
+                        current_node.bbox,
+                        "discarded (intersection:",
+                        node_inter_UB,
+                        ") => discarded",
+                        len(current_node.data),
+                        "bboxes.",
+                    )
                 continue
             else:
                 if not current_node.is_leaf:
+                    if self.verbose >= 10:
+                        print(
+                            "[RTree] - Query: Node",
+                            current_node.bbox,
+                            "searched forward (intersection:",
+                            node_inter_UB,
+                            ")",
+                        )
                     left_UB = intersection(X, current_node.left.bbox)
                     right_UB = intersection(X, current_node.right.bbox)
 
@@ -188,12 +226,33 @@ class RNode:
                         to_visit.append(current_node.right)
                 else:
                     # If it's leaf, simply review all the bboxes contained inside the node
+                    if self.verbose >= 10:
+                        print(
+                            "[RTree] - Query: Node",
+                            current_node.bbox,
+                            "is leaf, intersecting bboxes with query…",
+                        )
+
+                    k = 0
                     for i, y in zip(current_node.indices, current_node.data):
                         inter = intersection(X, y)
                         if inter > min_area:
-
+                            if self.verbose >= 100:
+                                print("\tBBox", y, "overlaps", inter, "with the query => relevant")
                             indices_buffer.append(i)
                             intersections_buffer.append(inter)
+                            k = +1
+                        else:
+                            if self.verbose >= 100:
+                                print("\tBBox", y, "overlaps", inter, "with the query => discarded")
+
+                    if self.verbose >= 10:
+                        print(
+                            "[RTree] - Query: Found",
+                            k,
+                            "relevant bboxes in node",
+                            current_node.bbox,
+                        )
 
         return indices_buffer, intersections_buffer
 
@@ -226,13 +285,13 @@ class RTree:
         Leaf size of the tree. Region size at which the space stops being sub-divised.
     """
 
-    def __init__(self, data: np.array, leaf_size: int = 16):
+    def __init__(self, data: np.array, leaf_size: int = 16, verbose: int = 0):
         self.data = data
         axis = max_spread_axis(self.data)
-        self._root = RNode(data, leaf_size, axis, None)
+        self._root = RNode(data, leaf_size, axis, None, verbose)
         self._root.build()
 
-    def intersect(self, X: np.array, min_area: float = 0.0):
+    def intersect(self, X: np.array, min_area: float = 1.0):
         """
         Returns, among the indexed bboxes, the ones intersecting with more than `min_area`
         with the given bbox. The search is depth-first and is of log complexity.
@@ -242,7 +301,7 @@ class RTree:
         X : np.array
             1-dimensional float64 numpy array of the box to find overlaps with
         min_area : float, optional
-            Minimum area to consider overlap significant, by default 0.0
+            Minimum area to consider overlap significant, by default 1.0
 
         Returns
         -------
