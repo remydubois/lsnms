@@ -111,30 +111,32 @@ def test_box_encoding(instances):
 def cached_routine(boxes, scores):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
-    try:
-        assert len(_nms.stats.cache_misses) == 0
-        assert len(_nms.stats.cache_hits) == 1
-
-        with open("/tmp/cached_result", "w+") as outfile:
-            outfile.write("1")
-    except AssertionError:
-        with open("/tmp/cached_result", "w+") as outfile:
-            outfile.write("0")
+    if len(_nms.stats.cache_misses):
+        n_misses = list(_nms.stats.cache_misses.values())[0]
+    else:
+        n_misses = 0
+    if len(_nms.stats.cache_hits):
+        n_hits = list(_nms.stats.cache_hits.values())[0]
+    else:
+        n_hits = 0
+    with open("/tmp/cached_result", "w+") as outfile:
+        outfile.write(f"{n_misses} {n_hits}")
     return
 
 
 def uncached_routine(boxes, scores):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
-    try:
-        assert len(_nms.stats.cache_misses) == 1
-        assert len(_nms.stats.cache_hits) == 0
-
-        with open("/tmp/uncached_result", "w+") as outfile:
-            outfile.write("1")
-    except AssertionError:
-        with open("/tmp/uncached_result", "w+") as outfile:
-            outfile.write("0")
+    if len(_nms.stats.cache_misses):
+        n_misses = list(_nms.stats.cache_misses.values())[0]
+    else:
+        n_misses = 0
+    if len(_nms.stats.cache_hits):
+        n_hits = list(_nms.stats.cache_hits.values())[0]
+    else:
+        n_hits = 0
+    with open("/tmp/uncached_result", "w+") as outfile:
+        outfile.write(f"{n_misses} {n_hits}")
     return
 
 
@@ -156,8 +158,12 @@ def test_caching_hits(instances):
     process2.join()
 
     with open("/tmp/uncached_result", "r") as infile:
-        result = infile.read()
-        assert result == "1", "Cache clearing malfunctioned, first call already did hit cache"
+        n_misses, n_hits = map(int, infile.read().split(" "))
+        assert (
+            n_misses > 0
+        ), f"Cache clearing malfunctioned, no miss to report at first call: {n_misses}"
+        assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
     with open("/tmp/cached_result", "r") as infile:
-        result = infile.read()
-        assert result == "1", "Caching malfunctioned, second call did not hit cache"
+        n_misses, n_hits = map(int, infile.read().split(" "))
+        assert n_misses == 0, f"Caching malfunctioned, misses to report at second call: {n_misses}"
+        assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"
