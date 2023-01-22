@@ -92,8 +92,7 @@ def test_box_encoding(instances):
         nms(boxes, scores, 0.5, 0.1)
 
 
-def routine(instances):
-    boxes, scores = instances
+def routine(boxes, scores):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
     return
 
