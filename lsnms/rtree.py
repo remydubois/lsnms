@@ -70,7 +70,6 @@ class RNode:
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"
-        print("Axis,", axis)
         assert axis >= 0 and axis < data.ndim, "Axis should indicate the dimension to slice"
 
         self.dimensionality = data.shape[-1] // 2
