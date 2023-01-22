@@ -70,6 +70,7 @@ class RNode:
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"
+        print("Axis,", axis)
         assert axis >= 0 and axis < data.ndim, "Axis should indicate the dimension to slice"
 
         self.dimensionality = data.shape[-1] // 2
@@ -150,7 +151,7 @@ class RNode:
                 # Append children to the list of nodes to split
                 nodes.append(left)
                 nodes.append(right)
-                current._built = True
+            current._built = True
 
     def intersect(self, X: np.ndarray, min_area: float = 1.0) -> Tuple[List[int], List[float]]:
         """
