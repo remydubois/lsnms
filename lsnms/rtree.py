@@ -152,14 +152,14 @@ class RNode:
                 nodes.append(right)
                 current._built = True
 
-    def intersect(self, X, min_area=1.0) -> Tuple[List[int], List[float]]:
+    def intersect(self, X: np.ndarray, min_area: float = 1.0) -> Tuple[List[int], List[float]]:
         """
         Returns, among the indexed bboxes, the ones intersecting with more than `min_area`
         with the given bbox. The search is depth-first and is of log complexity.
 
         Parameters
         ----------
-        X : np.array
+        X : np.ndarray
             1-dimensional numpy array of the box to find overlaps with
         min_area : float, optional
             Minimum area to consider overlap significant, by default 1.0 (pixel)
@@ -270,6 +270,13 @@ class RTree:
     """
     Main object for the R-Tree class: used to find in a log time-complexity
     the boxes overlapping with a given box.
+
+    Is to be deprecated, just use
+    ```
+    tree = RNode(…)
+    tree.build()
+    ```
+    instead.
 
     ```
     tree = RTree(existing_boxes)
