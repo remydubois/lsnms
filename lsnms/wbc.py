@@ -1,9 +1,11 @@
-from numba import njit
-from typing import Optional
-import numpy as np
-from lsnms.util import area, check_correct_input
-from lsnms.rtree import RTree
 import warnings
+from typing import Optional
+
+import numpy as np
+from numba import njit
+
+from lsnms.rtree import RTree
+from lsnms.util import area, check_correct_input
 
 
 @njit

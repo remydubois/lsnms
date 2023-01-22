@@ -1,5 +1,7 @@
 import numpy as np
-from lsnms.rtree import RTree, RNode
+import pytest
+
+from lsnms.rtree import RNode, RTree
 
 
 def intersection(boxA, boxB):
@@ -42,8 +44,20 @@ def test_simple_query():
     wh = rng.uniform(15, 45, size=topleft.shape)
 
     boxes = np.concatenate([topleft, topleft + wh], axis=1)
-    scores = rng.uniform(0.1, 1.0, size=len(topleft))
+    _ = rng.uniform(0.1, 1.0, size=len(topleft))
 
     tree = RNode(boxes, 16, 0, None)
     tree.build()
-    tree.intersect(boxes[0], 1.)
+    tree.intersect(boxes[0], 1.0)
+
+
+def test_build_odd_tree(instances):
+    boxes, _ = instances
+    with pytest.raises(AssertionError):
+        _ = RTree(boxes, leaf_size=0)
+
+
+def test_build_rnode_default_args(instances):
+    boxes, _ = instances
+
+    _ = RNode(boxes)

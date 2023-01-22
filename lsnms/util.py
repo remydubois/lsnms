@@ -1,9 +1,9 @@
-from numba import njit, int64, float64
+import math
 from pathlib import Path
 from typing import Optional
-from numba.typed import Dict
-import math
+
 import numpy as np
+from numba import njit
 
 
 @njit(cache=False)
@@ -78,7 +78,7 @@ def distance_to_hypersphere(X, centroid, radius):
         Distance to the sphere.
     """
     centroid_dist = rdist(X, centroid)
-    return max(0, centroid_dist ** 0.5 - radius ** 0.5) ** 2
+    return max(0, centroid_dist**0.5 - radius**0.5) ** 2
 
 
 @njit(cache=False)
@@ -479,11 +479,10 @@ def check_correct_input(
 
 def clear_cache():
     """
-    Clears Numba's cache files: those are compiled functions that might need to be deleted 
+    Clears Numba's cache files: those are compiled functions that might need to be deleted
     between lsnms updates.
     """
     cache_repo = Path(__file__).parent / "__pycache__"
-    numba_cache_files = cache_repo.glob('*.nb*')
+    numba_cache_files = cache_repo.glob("*.nb*")
     for file in numba_cache_files:
         file.unlink(missing_ok=True)
-        

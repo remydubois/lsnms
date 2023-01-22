@@ -1,14 +1,15 @@
-import numpy as np
 from collections import OrderedDict
-from numba.experimental import jitclass
-from numba import deferred_type, optional, int64, float64, boolean, typed
-from lsnms.util import (
-    intersection,
-    split_along_axis,
-    box_englobing_boxes,
-    max_spread_axis,
-)
 
+import numpy as np
+from numba import boolean, deferred_type, float64, int64, optional, typed
+from numba.experimental import jitclass
+
+from lsnms.util import (
+    box_englobing_boxes,
+    intersection,
+    max_spread_axis,
+    split_along_axis,
+)
 
 specs = OrderedDict()
 node_type = deferred_type()
@@ -56,6 +57,7 @@ class RNode:
         self.data = data
         self.axis = axis
         # Quick sanity checks
+        assert leaf_size > 0, "Leaf size must be strictly positive"
         assert len(data) > 0, "Empty dataset"
         assert self.data.shape[-1] % 2 == 0, "odd dimensionality"
         assert data.ndim == 2, "Boxes to index should be (n_boxes, 4)"
@@ -107,7 +109,6 @@ class RNode:
         )
         return left_node, right_node
 
-
     def build(self):
         """
         Reccursively build the children.
@@ -122,11 +123,11 @@ class RNode:
             current = nodes.pop(-1)
             if not current.is_leaf:
                 left, right = current.split()
-                
+
                 # Assign children
                 current.left = left
                 current.right = right
-                
+
                 # Append children to the list of nodes to split
                 nodes.append(left)
                 nodes.append(right)
@@ -151,7 +152,7 @@ class RNode:
         """
         if not self._built:
             raise ValueError("Tree needs to be built before being queried. Call RNode.build first.")
-        
+
         # Initialize buffers to hold indices of intersects and corresponding areas
         indices_buffer = typed.List.empty_list(int64)
         intersections_buffer = typed.List.empty_list(float64)
@@ -163,11 +164,11 @@ class RNode:
             # Take the last node in list, which, by design, is the one having the highest
             # intersection with the box queried
             current_node = to_visit.pop(-1)
-            
+
             # Compute the area of intersection upper bound
             # between this node and the bbox queried
             node_inter_UB = intersection(X, current_node.bbox)
-            
+
             # If the upper bound is smaller than the minimal requested aread
             # by design all the bboxes contained in this node will
             # have an intersection too small
@@ -177,7 +178,7 @@ class RNode:
                 if not current_node.is_leaf:
                     left_UB = intersection(X, current_node.left.bbox)
                     right_UB = intersection(X, current_node.right.bbox)
-                    
+
                     # Order the children by increasing area of intersection
                     if left_UB > right_UB:
                         to_visit.append(current_node.right)
@@ -190,10 +191,10 @@ class RNode:
                     for i, y in zip(current_node.indices, current_node.data):
                         inter = intersection(X, y)
                         if inter > min_area:
-                            
+
                             indices_buffer.append(i)
                             intersections_buffer.append(inter)
-        
+
         return indices_buffer, intersections_buffer
 
 

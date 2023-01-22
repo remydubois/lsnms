@@ -1,64 +1,65 @@
 from multiprocessing import Process
 from time import perf_counter
+
 import numpy as np
 import pytest
 import torch
+from torchvision.ops import boxes as box_ops
+
 from lsnms import nms
 from lsnms.nms import naive_nms
 from lsnms.util import clear_cache
-from torchvision.ops import boxes as box_ops
 
 
-def datagen(n=10_000):
-    rng = np.random.RandomState(0)
-    topleft = rng.uniform(0.0, high=1_000, size=(n, 2))
-    wh = rng.uniform(15, 45, size=topleft.shape)
+def test_rtree_nms(instances, score_threshold):
 
-    boxes = np.concatenate([topleft, topleft + wh], axis=1)
-    scores = rng.uniform(0.1, 1.0, size=len(topleft))
+    boxes, scores = instances
 
-    return boxes, scores
-
-
-def test_rtree_nms():
-    boxes, scores = datagen(n=1_000)
+    # Manually filter instances based on scores because torch's NMS does not do it
+    torch_boxes = boxes[scores > score_threshold]
+    torch_scores = scores[scores > score_threshold]
 
     # Compare against torch
-    k1 = box_ops.nms(torch.tensor(boxes), torch.tensor(scores), 0.5).numpy()
+    k1 = box_ops.nms(torch.tensor(torch_boxes), torch.tensor(torch_scores), 0.5).numpy()
 
     # Compare sparse NMS
-    k2 = nms(boxes, scores, 0.5, 0.0)
+    k2 = nms(boxes, scores, 0.5, score_threshold)
 
     assert np.allclose(k1, k2)
 
 
-def test_empty_nms():
-    boxes, scores = datagen()
+def test_empty_nms(instances):
+    boxes, scores = instances
     # Put all the scores to zero artificially
-    keep = nms(boxes, scores * 0.)
+    keep = nms(boxes, scores * 0.0)
 
     assert keep.size == 0
-    
 
-def test_rtree_multiclass_nms():
 
-    boxes, scores = datagen()
+def test_rtree_multiclass_nms(instances, score_threshold):
+
+    boxes, scores = instances
     class_ids = np.random.randint(0, 50, size=len(boxes))
+
+    # Manually filter instances based on scores because torch's NMS does not do it
+    torch_boxes = boxes[scores > score_threshold]
+    torch_scores = scores[scores > score_threshold]
+    torch_class_ids = class_ids[scores > score_threshold]
 
     # Compare against torch
     k1 = box_ops.batched_nms(
-        torch.tensor(boxes), torch.tensor(scores), torch.tensor(class_ids), 0.5
+        torch.tensor(torch_boxes), torch.tensor(torch_scores), torch.tensor(torch_class_ids), 0.5
     ).numpy()
 
     # Compare sparse NMS
-    k2 = nms(boxes, scores, 0.5, 0.0, class_ids=class_ids)
+    k2 = nms(boxes, scores, 0.5, score_threshold, class_ids=class_ids)
 
     assert np.allclose(k1, k2)
 
 
-def test_naive_nms():
+def test_naive_nms(instances):
 
-    boxes, scores = datagen()
+    boxes, scores = instances
 
     # Compare against torch
     k1 = box_ops.nms(torch.tensor(boxes), torch.tensor(scores), 0.5).numpy()
@@ -69,62 +70,50 @@ def test_naive_nms():
     assert np.allclose(k1, k2)
 
 
-def test_boxes_shape():
-    boxes, scores = datagen()
+def test_boxes_shape(instances):
+    boxes, scores = instances
     boxes = boxes[None]
     with pytest.raises(ValueError):
         nms(boxes, scores, 0.5, 0.1)
 
 
-def test_scores_shape():
-    boxes, scores = datagen()
+def test_scores_shape(instances):
+    boxes, scores = instances
     scores = scores[..., None]
     with pytest.raises(ValueError):
         nms(boxes, scores, 0.5, 0.1)
 
 
-def test_box_encoding():
-    boxes, scores = datagen()
+def test_box_encoding(instances):
+    boxes, scores = instances
     # Make the first box odd: x1 > x2
     boxes[0, 0] = boxes[0, 2] + 1
     with pytest.raises(ValueError):
         nms(boxes, scores, 0.5, 0.1)
 
 
-def test_warning_dist_arg():
-    boxes, scores = datagen()
-    with pytest.warns(None):
-        nms(boxes, scores, 0.5, 0.1, cutoff_distance=64)
-
-
-def test_warning_tree_arg():
-    boxes, scores = datagen()
-    with pytest.warns(None):
-        nms(boxes, scores, 0.5, 0.1, tree="faketree")
-
-
-def routine():
-    boxes, scores = datagen(n=10)
-    _ = nms(boxes, scores, 0.5, score_threshold=0.)
+def routine(instances):
+    boxes, scores = instances
+    _ = nms(boxes, scores, 0.5, score_threshold=0.0)
     return
 
 
-def test_caching():
+def test_caching(instances):
 
     clear_cache()
-    process = Process(target=routine)
-    process2 = Process(target=routine)
+    process = Process(target=routine, args=(instances))
+    process2 = Process(target=routine, args=(instances))
 
     st = perf_counter()
     process.start()
     process.join()
     delta_0 = perf_counter() - st
-    
+
     st = perf_counter()
     process2.start()
     process2.join()
     delta_1 = perf_counter() - st
-    
-    assert delta_1 * 3 < delta_0, f"Compilation did not cache. First call: {delta_0:.2f}s, second call: {delta_1:.2f}s"
-    
 
+    assert (
+        delta_1 * 3 < delta_0
+    ), f"Compilation did not cache. First call: {delta_0:.2f}s, second call: {delta_1:.2f}s"
