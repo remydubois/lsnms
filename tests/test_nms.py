@@ -28,9 +28,9 @@ def test_rtree_nms(instances, score_threshold):
     assert np.allclose(k1, k2)
 
 
-def test_rtree_nms_verbose(instances, score_threshold):
+def test_rtree_nms_verbose(instances_subset, score_threshold):
 
-    boxes, scores = instances
+    boxes, scores = instances_subset
 
     # Manually filter instances based on scores because torch's NMS does not do it
     torch_boxes = boxes[scores > score_threshold]
