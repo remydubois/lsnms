@@ -1,5 +1,4 @@
 from multiprocessing import Process
-from time import perf_counter
 
 import numpy as np
 import pytest
@@ -7,7 +6,7 @@ import torch
 from torchvision.ops import boxes as box_ops
 
 from lsnms import nms
-from lsnms.nms import naive_nms
+from lsnms.nms import _nms, naive_nms
 from lsnms.util import clear_cache
 
 
@@ -109,27 +108,56 @@ def test_box_encoding(instances):
         nms(boxes, scores, 0.5, 0.1)
 
 
-def routine(boxes, scores):
+def cached_routine(boxes, scores):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
+
+    try:
+        assert len(_nms.stats.cache_misses) == 0
+        assert len(_nms.stats.cache_hits) == 1
+
+        with open("/tmp/cached_result", "w+") as outfile:
+            outfile.write("1")
+    except AssertionError:
+        with open("/tmp/cached_result", "w+") as outfile:
+            outfile.write("0")
     return
 
 
-def test_caching(instances):
+def uncached_routine(boxes, scores):
+    _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
+    try:
+        assert len(_nms.stats.cache_misses) == 1
+        assert len(_nms.stats.cache_hits) == 0
+
+        with open("/tmp/uncached_result", "w+") as outfile:
+            outfile.write("1")
+    except AssertionError:
+        with open("/tmp/uncached_result", "w+") as outfile:
+            outfile.write("0")
+    return
+
+
+def test_caching_hits(instances):
+    """
+    Very manul cache testing:
+    1 - First, cache is cleared
+    2 - A first process calls nms, cache should be empty here and should miss
+    3 - Another process then calls nms, cache should now hit
+    """
     clear_cache()
-    process = Process(target=routine, args=(instances))
-    process2 = Process(target=routine, args=(instances))
+    process = Process(target=uncached_routine, args=(instances))
+    process2 = Process(target=cached_routine, args=(instances))
 
-    st = perf_counter()
     process.start()
     process.join()
-    delta_0 = perf_counter() - st
 
-    st = perf_counter()
     process2.start()
     process2.join()
-    delta_1 = perf_counter() - st
 
-    assert (
-        delta_1 * 3 < delta_0
-    ), f"Compilation did not cache. First call: {delta_0:.2f}s, second call: {delta_1:.2f}s"
+    with open("/tmp/uncached_result", "r") as infile:
+        result = infile.read()
+        assert result == "1", "Cache clearing malfunctioned, first call already did hit cache"
+    with open("/tmp/cached_result", "r") as infile:
+        result = infile.read()
+        assert result == "1", "Caching malfunctioned, second call did not hit cache"
