@@ -136,7 +136,6 @@ def max_spread_axis(data):
     splitdim = -1
     for j in range(data.shape[1] // 2):
         spread = data[:, j].max() - data[:, j].min()
-        print("j", j, "spread", spread)
         if spread > max_spread:
             max_spread = spread
             splitdim = j
@@ -473,4 +472,5 @@ def clear_cache():
     cache_repo = Path(__file__).parent / "__pycache__"
     numba_cache_files = cache_repo.glob("*.nb*")
     for file in numba_cache_files:
-        file.unlink(missing_ok=True)
+        file.unlink()
+        print("Removed cache", file)
