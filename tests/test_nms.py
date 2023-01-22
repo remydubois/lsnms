@@ -28,6 +28,23 @@ def test_rtree_nms(instances, score_threshold):
     assert np.allclose(k1, k2)
 
 
+def test_rtree_nms_verbose(instances, score_threshold):
+
+    boxes, scores = instances
+
+    # Manually filter instances based on scores because torch's NMS does not do it
+    torch_boxes = boxes[scores > score_threshold]
+    torch_scores = scores[scores > score_threshold]
+
+    # Compare against torch
+    k1 = box_ops.nms(torch.tensor(torch_boxes), torch.tensor(torch_scores), 0.5).numpy()
+
+    # Compare sparse NMS
+    k2 = nms(boxes, scores, 0.5, score_threshold, rtree_verbosity_level=100)
+
+    assert np.allclose(k1, k2)
+
+
 def test_empty_nms(instances):
     boxes, scores = instances
     # Put all the scores to zero artificially

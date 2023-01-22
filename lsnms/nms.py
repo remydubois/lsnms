@@ -20,7 +20,8 @@ def _nms(
     iou_threshold: float = 0.5,
     score_threshold: float = 0.0,
     rtree_leaf_size: int = 32,
-) -> np.array:
+    rtree_verbosity_level: int = 0,
+) -> np.ndarray:
     """
     See `lsnms.nms` docstring.
     """
@@ -36,7 +37,7 @@ def _nms(
         return np.zeros(0, dtype=np.int64)
 
     # Build the RTree
-    rtree = RNode(boxes, rtree_leaf_size, max_spread_axis(boxes), None)
+    rtree = RNode(boxes, rtree_leaf_size, max_spread_axis(boxes), None, rtree_verbosity_level)
     rtree.build()
 
     # Compute the areas once and for all: avoid recomputing it at each step
@@ -81,7 +82,8 @@ def nms(
     score_threshold: float = 0.0,
     class_ids: Optional[np.array] = None,
     rtree_leaf_size: int = 32,
-) -> np.array:
+    rtree_verbosity_level: int = 0,
+) -> np.ndarray:
     """
     Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
     This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
@@ -105,11 +107,6 @@ def nms(
     keep = nms(boxes, scores, iou_threshold=0.5, score_threshold=0., class_ids=class_ids)
     ```
 
-
-    Note that this implementation could be further optimized:
-    - Memory management is quite poor: several back and forth list-to-numpy conversions happen
-    - Some multi treading could be injected when comparing far appart clusters
-
     Parameters
     ----------
     boxes : np.array
@@ -127,10 +124,13 @@ def nms(
         same class.
     rtree_leaf_size: int, optional
         The leaf size parameter of the underlying R-Tree built for box query.
+    rtree_verbosity_level: int, optional
+        The verbosity level of the underlying R-Tree. 0 will print nothing, 10 will print
+        basic node search info, 100 will print detailed node search info.
 
     Returns
     -------
-    np.array
+    np.ndarray
         Indices of boxes kept, in decreasing order of confidence score.
     """
 
@@ -152,6 +152,7 @@ def nms(
         iou_threshold=iou_threshold,
         score_threshold=score_threshold,
         rtree_leaf_size=rtree_leaf_size,
+        rtree_verbosity_level=rtree_verbosity_level,
     )
 
     return keep
@@ -160,7 +161,7 @@ def nms(
 @njit(fastmath=True)
 def naive_nms(
     boxes: np.array, scores: np.array, iou_threshold: float = 0.5, score_threshold: float = 0.0
-) -> np.array:
+) -> np.ndarray:
     """
     Naive nms, for timing and comparisons only.
 
@@ -175,17 +176,10 @@ def naive_nms(
         Threshold used to consider two boxes to be overlapping, by default 0.5
     score_threshold : float, optional
         Threshold from which boxes are discarded, by default 0.0
-    cutoff_distance: int, optional
-        DEPRECATED, used for compatibility with version 0.1.X.
-        Since version 0.2.X, it is useless because overlapping boxes are queried using a R-Tree,
-        which is parameter free.
-    tree: str, optional
-        DEPRECATED, used for compatibility with version 0.1.X.
-        Since version 0.2.X, the tree used is a R-Tree.
 
     Returns
     -------
-    np.array
+    np.ndarray
         Indices of boxes kept, in decreasing order of confidence score.
     """
     keep = []

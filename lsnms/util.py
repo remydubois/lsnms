@@ -134,8 +134,9 @@ def max_spread_axis(data):
     """
     max_spread = 0.0
     splitdim = -1
-    for j in range(data.shape[1]):
+    for j in range(data.shape[1] // 2):
         spread = data[:, j].max() - data[:, j].min()
+        print("j", j, "spread", spread)
         if spread > max_spread:
             max_spread = spread
             splitdim = j
@@ -162,19 +163,6 @@ def split_along_axis(data, axis):
     """
     left, right = median_argsplit(data[:, axis])
     return left, right
-    # counts, bins = np.histogram(data[:, axis])
-    # bins = (bins[1:] + bins[:-1]) / 2
-    # cap = bins[counts.argmin()]
-    # mask = data[:, axis] <= cap
-    # n_left = mask.sum()
-    # # Account for the case where all positions along this axis are equal: split in the middle
-    # if n_left == len(data) or n_left == 0:
-    #     left = indices[: len(indices) // 2]
-    #     right = indices[len(indices) // 2 :]
-    # else:
-    #     left = indices[mask]
-    #     right = indices[np.logical_not(mask)]
-    # return left, right
 
 
 @njit(cache=False)
