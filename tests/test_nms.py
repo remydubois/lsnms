@@ -1,3 +1,4 @@
+import json
 from multiprocessing import Process
 
 import numpy as np
@@ -111,32 +112,24 @@ def test_box_encoding(instances):
 def cached_routine(boxes, scores):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
-    if len(_nms.stats.cache_misses):
-        n_misses = list(_nms.stats.cache_misses.values())[0]
-    else:
-        n_misses = 0
-    if len(_nms.stats.cache_hits):
-        n_hits = list(_nms.stats.cache_hits.values())[0]
-    else:
-        n_hits = 0
-    with open("/tmp/cached_result", "w+") as outfile:
-        outfile.write(f"{n_misses} {n_hits}")
+    stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
+    stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
+
+    with open("/tmp/cached_stats.json", "w+") as outfile:
+        json.dump(stats, outfile)
+
     return
 
 
 def uncached_routine(boxes, scores):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
-    if len(_nms.stats.cache_misses):
-        n_misses = list(_nms.stats.cache_misses.values())[0]
-    else:
-        n_misses = 0
-    if len(_nms.stats.cache_hits):
-        n_hits = list(_nms.stats.cache_hits.values())[0]
-    else:
-        n_hits = 0
-    with open("/tmp/uncached_result", "w+") as outfile:
-        outfile.write(f"{n_misses} {n_hits}")
+    stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
+    stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
+
+    with open("/tmp/uncached_stats.json", "w+") as outfile:
+        json.dump(stats, outfile)
+
     return
 
 
@@ -157,13 +150,21 @@ def test_caching_hits(instances):
     process2.start()
     process2.join()
 
-    with open("/tmp/uncached_result", "r") as infile:
-        n_misses, n_hits = map(int, infile.read().split(" "))
+    sig = "(array(float64, 2d, C), array(float64, 1d, C), float64, float64, int64, int64)"
+
+    with open("/tmp/uncached_stats.json", "r") as infile:
+        stats = json.load(infile)
+        n_misses = stats["cache_misses"][sig]
+        n_hits = stats["cache_hits"].get(sig, 0)
         assert (
             n_misses > 0
         ), f"Cache clearing malfunctioned, no miss to report at first call: {n_misses}"
         assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
-    with open("/tmp/cached_result", "r") as infile:
-        n_misses, n_hits = map(int, infile.read().split(" "))
+
+    with open("/tmp/cached_stats.json", "r") as infile:
+        stats = json.load(infile)
+        n_misses = stats["cache_misses"].get(sig, 0)
+        n_hits = stats["cache_hits"].get(sig, 0)
+
         assert n_misses == 0, f"Caching malfunctioned, misses to report at second call: {n_misses}"
         assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"
