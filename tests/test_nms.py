@@ -157,14 +157,19 @@ def test_caching_hits(instances):
         n_misses = stats["cache_misses"][sig]
         n_hits = stats["cache_hits"].get(sig, 0)
         assert (
-            n_misses > 0
-        ), f"Cache clearing malfunctioned, no miss to report at first call: {n_misses}"
-        assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
+            n_misses
+            > 0
+            # ), f"Cache clearing malfunctioned, no miss to report at first call: {n_misses}"
+        ), print(stats)
+        # assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
+        assert n_hits == 0, print(stats)
 
     with open("/tmp/cached_stats.json", "r") as infile:
         stats = json.load(infile)
         n_misses = stats["cache_misses"].get(sig, 0)
         n_hits = stats["cache_hits"].get(sig, 0)
 
-        assert n_misses == 0, f"Caching malfunctioned, misses to report at second call: {n_misses}"
-        assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"
+        # assert n_misses == 0, f"Caching malfunctioned, misses to report at second call:{n_misses}"
+        # assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"
+        assert n_misses == 0, print(stats)
+        assert n_hits > 0, print(stats)
