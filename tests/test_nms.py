@@ -109,31 +109,31 @@ def test_box_encoding(instances):
         nms(boxes, scores, 0.5, 0.1)
 
 
-def cached_routine(boxes, scores):
+def cached_routine(boxes, scores, tmp_path):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
     stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
     stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
 
-    with open("/tmp/cached_stats.json", "w+") as outfile:
+    with open(tmp_path / "cached_stats.json", "w+") as outfile:
         json.dump(stats, outfile)
 
     return
 
 
-def uncached_routine(boxes, scores):
+def uncached_routine(boxes, scores, tmp_path):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
 
     stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
     stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
 
-    with open("/tmp/uncached_stats.json", "w+") as outfile:
+    with open(tmp_path / "uncached_stats.json", "w+") as outfile:
         json.dump(stats, outfile)
 
     return
 
 
-def test_caching_hits(instances):
+def test_caching_hits(instances, tmp_path, nms_signature):
     """
     Very manul cache testing:
     1 - First, cache is cleared
@@ -141,8 +141,8 @@ def test_caching_hits(instances):
     3 - Another process then calls nms, cache should now hit
     """
     clear_cache()
-    process = Process(target=uncached_routine, args=(instances))
-    process2 = Process(target=cached_routine, args=(instances))
+    process = Process(target=uncached_routine, args=(*instances, tmp_path))
+    process2 = Process(target=cached_routine, args=(*instances, tmp_path))
 
     process.start()
     process.join()
@@ -150,12 +150,10 @@ def test_caching_hits(instances):
     process2.start()
     process2.join()
 
-    sig = "(array(float64, 2d, C), array(float64, 1d, C), float64, float64, int64, int64)"
-
-    with open("/tmp/uncached_stats.json", "r") as infile:
+    with open(tmp_path / "uncached_stats.json", "r") as infile:
         stats = json.load(infile)
-        n_misses = stats["cache_misses"][sig]
-        n_hits = stats["cache_hits"].get(sig, 0)
+        n_misses = stats["cache_misses"][nms_signature]
+        n_hits = stats["cache_hits"].get(nms_signature, 0)
         assert (
             n_misses
             > 0
@@ -164,10 +162,10 @@ def test_caching_hits(instances):
         # assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
         assert n_hits == 0, print(stats)
 
-    with open("/tmp/cached_stats.json", "r") as infile:
+    with open(tmp_path / "cached_stats.json", "r") as infile:
         stats = json.load(infile)
-        n_misses = stats["cache_misses"].get(sig, 0)
-        n_hits = stats["cache_hits"].get(sig, 0)
+        n_misses = stats["cache_misses"].get(nms_signature, 0)
+        n_hits = stats["cache_hits"].get(nms_signature, 0)
 
         # assert n_misses == 0, f"Caching malfunctioned, misses to report at second call:{n_misses}"
         # assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"

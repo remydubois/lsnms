@@ -27,3 +27,9 @@ def instances_subset():
 @pytest.fixture
 def score_threshold():
     return 0.5
+
+
+@pytest.fixture
+def nms_signature():
+    sig = "(array(float64, 2d, C), array(float64, 1d, C), float64, float64, int64, int64)"
+    return sig
