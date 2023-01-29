@@ -155,6 +155,8 @@ def test_caching_hits(instances, tmp_path, nms_signature):
     process2.join()
 
     print("Cache dir:", os.listdir("/home/runner/work/lsnms/lsnms/lsnms/__pycache__/"))
+    _ = nms(*instances, 0.5, score_threshold=0.0)
+    print("Cache dir:", os.listdir("/home/runner/work/lsnms/lsnms/lsnms/__pycache__/"))
 
     with open(tmp_path / "uncached_stats.json", "r") as infile:
         stats = json.load(infile)
