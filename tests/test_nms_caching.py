@@ -1,8 +1,6 @@
 import json
 from multiprocessing import Process
 
-import pytest
-
 from lsnms import nms
 from lsnms.nms import _nms
 from lsnms.util import clear_cache
@@ -32,7 +30,6 @@ def uncached_routine(boxes, scores, tmp_path):
     return
 
 
-@pytest.mark.skip("To discard")
 def test_caching_hits(instances, tmp_path, nms_signature):
     """
     Very manul cache testing:
