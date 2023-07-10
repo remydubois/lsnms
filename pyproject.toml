@@ -10,16 +10,15 @@ keywords = ["NMS", "Non Maximum Suppression", "Histology image", "Satellite imag
 classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering"]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.10"
-numpy = "1.20.0"
-numba = "0.54.1"
+python = ">=3.8,<=3.10"
+numpy = "1.24.0"
+numba = "^0.57.1"
 
-[tool.poetry.dev-dependencies]
-pytest = "6.2.5"
-tox = "3.24.4"
-torch = "1.10.2"
-torchvision = "0.11.3"
-pillow = "9.3.0"
+[tool.poetry.group.dev.dependencies]
+torch = "^2.0.1"
+torchvision = "^0.15.2"
+pytest = "^7.4.0"
+pillow = "^10.0.0"
 
 [tool.black]
 line-length = 100
