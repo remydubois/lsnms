@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 0.4.0
+------------
+- Dropped support to python 3.7
+- Better handling of the dev dependencies in the setup file
+- Compatible with python 3.10
+- Supports Numpy 1.24
+
+
 Version 0.3.2
 ------------
 - Fixed issue https://github.com/remydubois/lsnms/issues/12, by masking scores as well as boxes.
