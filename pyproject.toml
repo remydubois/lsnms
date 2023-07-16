@@ -15,10 +15,10 @@ numpy = "1.24.0"
 numba = "^0.57.1"
 
 [tool.poetry.group.dev.dependencies]
-torch = "^2.0.1"
-torchvision = "^0.15.2"
 pytest = "^7.4.0"
 pillow = "^10.0.0"
+torch = "2.0.0"
+torchvision = "0.15.1"
 
 [tool.black]
 line-length = 100
