@@ -71,7 +71,7 @@ def _nms(
         keep.append(current_idx)
         to_consider[current_idx] = False
 
-    return np.array(keep)
+    return np.argwhere(score_mask)[keep]
 
 
 def nms(
