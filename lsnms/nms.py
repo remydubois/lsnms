@@ -44,7 +44,7 @@ def _nms(
 
     # Order by decreasing confidence
     order = np.argsort(scores)[::-1]
-    # Create a mask to keep track of boxes which have alread been visited
+    # Create a mask to keep track of boxes which have already been visited
     to_consider = np.full(len(boxes), True)
     for current_idx in order:
         # If already visited or discarded
