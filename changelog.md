@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 0.4.2
+------------
+- Fixed issue #22 by releasing Numpy lock.
+
 Version 0.4.1
 ------------
 - Fixed issue https://github.com/remydubois/lsnms/issues/19, by referencing the indicies from the score_mask array
