@@ -16,11 +16,14 @@ def test_rtree_nms(instances, score_threshold):
     boxes, scores = instances
 
     # Manually filter instances based on scores because torch's NMS does not do it
-    torch_boxes = boxes[scores > score_threshold]
-    torch_scores = scores[scores > score_threshold]
+    scores_mask = scores > score_threshold
+    torch_boxes = boxes[scores_mask]
+    torch_scores = scores[scores_mask]
 
     # Compare against torch
-    k1 = box_ops.nms(torch.tensor(torch_boxes), torch.tensor(torch_scores), 0.5).numpy()
+    _k1 = box_ops.nms(torch.tensor(torch_boxes), torch.tensor(torch_scores), 0.5).numpy()
+    # argwhere returns array of shape (n, 1)
+    k1 = np.argwhere(scores_mask)[_k1, 0]
 
     # Compare sparse NMS
     k2 = nms(boxes, scores, 0.5, score_threshold)
@@ -59,14 +62,16 @@ def test_rtree_multiclass_nms(instances, score_threshold):
     class_ids = np.random.randint(0, 50, size=len(boxes))
 
     # Manually filter instances based on scores because torch's NMS does not do it
-    torch_boxes = boxes[scores > score_threshold]
-    torch_scores = scores[scores > score_threshold]
-    torch_class_ids = class_ids[scores > score_threshold]
+    score_mask = scores > score_threshold
+    torch_boxes = boxes[score_mask]
+    torch_scores = scores[score_mask]
+    torch_class_ids = class_ids[score_mask]
 
     # Compare against torch
-    k1 = box_ops.batched_nms(
+    _k1 = box_ops.batched_nms(
         torch.tensor(torch_boxes), torch.tensor(torch_scores), torch.tensor(torch_class_ids), 0.5
     ).numpy()
+    k1 = np.argwhere(score_mask)[_k1, 0]
 
     # Compare sparse NMS
     k2 = nms(boxes, scores, 0.5, score_threshold, class_ids=class_ids)

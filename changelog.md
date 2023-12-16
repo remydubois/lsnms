@@ -1,6 +1,22 @@
 Changelog
 =========
 
+Version 0.4.2
+------------
+- Fixed issue #22 by releasing Numpy lock.
+
+Version 0.4.1
+------------
+- Fixed issue https://github.com/remydubois/lsnms/issues/19, by referencing the indicies from the score_mask array
+
+Version 0.4.0
+------------
+- Dropped support to python 3.7
+- Better handling of the dev dependencies in the setup file
+- Compatible with python 3.10
+- Supports Numpy 1.24
+
+
 Version 0.3.2
 ------------
 - Fixed issue https://github.com/remydubois/lsnms/issues/12, by masking scores as well as boxes.
