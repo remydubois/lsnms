@@ -31,5 +31,9 @@ def score_threshold():
 
 @pytest.fixture
 def nms_signature():
-    sig = "(array(float64, 2d, C), array(float64, 1d, C), float64, float64, int64, int64)"
+    sig = (
+        "(Array(float64, 2, 'C', False, aligned=True),"
+        " Array(float64, 1, 'C', False, aligned=True),"
+        " float64, float64, int64, int64)"
+    )
     return sig
