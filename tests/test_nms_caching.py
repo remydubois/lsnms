@@ -49,22 +49,19 @@ def test_caching_hits(instances, tmp_path, nms_signature):
 
     with open(tmp_path / "uncached_stats.json", "r") as infile:
         stats = json.load(infile)
-        n_misses = stats["cache_misses"][nms_signature]
+        n_misses = stats["cache_misses"].get(nms_signature, 0)
         n_hits = stats["cache_hits"].get(nms_signature, 0)
         assert (
-            n_misses
-            > 0
-            # ), f"Cache clearing malfunctioned, no miss to report at first call: {n_misses}"
-        ), print(stats)
-        # assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
-        assert n_hits == 0, print(stats)
+            n_misses > 0
+        ), f"Cache clearing malfunctioned, no miss to report at first call: {n_misses}"
+        assert n_hits == 0, f"Cache clearing malfunctioned, number of hits is non null: {n_hits}"
 
     with open(tmp_path / "cached_stats.json", "r") as infile:
         stats = json.load(infile)
         n_misses = stats["cache_misses"].get(nms_signature, 0)
         n_hits = stats["cache_hits"].get(nms_signature, 0)
 
-        # assert n_misses == 0, f"Caching malfunctioned, misses to report at second call:{n_misses}"
-        # assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"
-        assert n_misses == 0, print(stats)
-        assert n_hits > 0, print(stats)
+        assert n_misses == 0, f"Caching malfunctioned, misses to report at second call:{n_misses}"
+        assert n_hits > 0, f"Caching malfunctioned, number of hits is null: {n_hits}"
+        # assert n_misses == 0, print(stats)
+        # assert n_hits > 0, print(stats)
