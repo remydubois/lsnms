@@ -8,6 +8,7 @@ from lsnms.util import clear_cache
 
 def cached_routine(boxes, scores, tmp_path):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
+    print("Inside cached routine", _nms.stats)
 
     stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
     stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
@@ -20,6 +21,7 @@ def cached_routine(boxes, scores, tmp_path):
 
 def uncached_routine(boxes, scores, tmp_path):
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
+    print("Inside uncached routine", _nms.stats)
 
     stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
     stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
@@ -46,12 +48,12 @@ def test_caching_hits(instances, tmp_path, nms_signature):
     s = time.time()
     process.start()
     process.join()
-    print("Uncached routine", time.time() - s)
+    print("Uncached routine", time.time() - s, _nms.stats)
 
     s = time.time()
     process2.start()
     process2.join()
-    print("Cached routine", time.time() - s)
+    print("Cached routine", time.time() - s, _nms.stats)
 
     with open(tmp_path / "uncached_stats.json", "r") as infile:
         stats = json.load(infile)
