@@ -41,11 +41,17 @@ def test_caching_hits(instances, tmp_path, nms_signature):
     process = Process(target=uncached_routine, args=(*instances, tmp_path))
     process2 = Process(target=cached_routine, args=(*instances, tmp_path))
 
+    import time
+
+    s = time.time()
     process.start()
     process.join()
+    print("Uncached routine", time.time() - s)
 
+    s = time.time()
     process2.start()
     process2.join()
+    print("Cached routine", time.time() - s)
 
     with open(tmp_path / "uncached_stats.json", "r") as infile:
         stats = json.load(infile)
