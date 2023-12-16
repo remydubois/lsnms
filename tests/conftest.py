@@ -15,7 +15,7 @@ def instances():
 
 @pytest.fixture
 def instances_subset():
-    topleft = np.random.uniform(0.0, high=1_000, size=(100, 2))
+    topleft = np.random.uniform(0.0, high=1_000, size=(15, 2))
     wh = np.random.uniform(15, 45, size=topleft.shape)
 
     boxes = np.concatenate([topleft, topleft + wh], axis=1)

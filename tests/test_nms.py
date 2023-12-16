@@ -36,11 +36,13 @@ def test_rtree_nms_verbose(instances_subset, score_threshold):
     boxes, scores = instances_subset
 
     # Manually filter instances based on scores because torch's NMS does not do it
-    torch_boxes = boxes[scores > score_threshold]
-    torch_scores = scores[scores > score_threshold]
+    scores_mask = scores > score_threshold
+    torch_boxes = boxes[scores_mask]
+    torch_scores = scores[scores_mask]
 
     # Compare against torch
-    k1 = box_ops.nms(torch.tensor(torch_boxes), torch.tensor(torch_scores), 0.5).numpy()
+    _k1 = box_ops.nms(torch.tensor(torch_boxes), torch.tensor(torch_scores), 0.5).numpy()
+    k1 = np.argwhere(scores_mask)[_k1, 0]
 
     # Compare sparse NMS
     k2 = nms(boxes, scores, 0.5, score_threshold, rtree_verbosity_level=100)
