@@ -63,6 +63,7 @@ def test_caching_hits(instances, tmp_path, nms_signature):
 
     with open(tmp_path / "cached_stats.json", "r") as infile:
         stats = json.load(infile)
+        print("At second call, stats are", stats)
         n_misses = stats["cache_misses"].get(nms_signature, 0)
         n_hits = stats["cache_hits"].get(nms_signature, 0)
 
