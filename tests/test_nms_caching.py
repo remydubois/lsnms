@@ -19,11 +19,7 @@ def cached_routine(boxes, scores, tmp_path):
 
 
 def uncached_routine(boxes, scores, tmp_path):
-    import os
-
-    print("Insice Uncached routine, cache content", os.listdir(_nms.stats.cache_path))
     _ = nms(boxes, scores, 0.5, score_threshold=0.0)
-    print("Insice Uncached routine, cache content", os.listdir(_nms.stats.cache_path))
 
     stats = {"cache_hits": {str(k): v for k, v in _nms.stats.cache_hits.items()}}
     stats["cache_misses"] = {str(k): v for k, v in _nms.stats.cache_misses.items()}
@@ -45,19 +41,16 @@ def test_caching_hits(instances, tmp_path, nms_signature):
     process = Process(target=uncached_routine, args=(*instances, tmp_path))
     process2 = Process(target=cached_routine, args=(*instances, tmp_path))
 
-    import os
-    import time
+    # import os
+    # import time
 
-    s = time.time()
+    # s = time.time()
     process.start()
     process.join()
-    print("Uncached routine", time.time() - s, _nms.stats)
-    print("Cache content", os.listdir(_nms.stats.cache_path))
 
-    s = time.time()
+    # s = time.time()
     process2.start()
     process2.join()
-    print("Cached routine", time.time() - s, _nms.stats)
 
     with open(tmp_path / "uncached_stats.json", "r") as infile:
         stats = json.load(infile)

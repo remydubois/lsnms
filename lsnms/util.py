@@ -470,7 +470,7 @@ def clear_cache():
     between lsnms updates.
     """
     cache_repo = Path(__file__).parent / "__pycache__"
-    numba_cache_files = cache_repo.glob("*.nb*")
+    numba_cache_files = cache_repo.glob("*")
     for file in numba_cache_files:
         file.unlink()
         print("Removed cache", file)
