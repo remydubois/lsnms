@@ -31,7 +31,7 @@ def _wbc(
     boxes = boxes[scores > score_threshold]
 
     # Index boxes
-    tree = RTree(boxes, 32)
+    tree = RTree(boxes, 32, 0)
 
     # Sort boxes by decreasing confidence scores
     order = np.argsort(scores)[::-1]

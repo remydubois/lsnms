@@ -38,6 +38,19 @@ def test_intersect_tree():
         np.testing.assert_array_less(out_inter, min_area)
 
 
+def test_simple_query():
+    rng = np.random.RandomState(1)
+    topleft = rng.uniform(0.0, high=1_000, size=(1000, 2))
+    wh = rng.uniform(15, 45, size=topleft.shape)
+
+    boxes = np.concatenate([topleft, topleft + wh], axis=1)
+    _ = rng.uniform(0.1, 1.0, size=len(topleft))
+
+    tree = RNode(boxes, 16, 0, None)
+    tree.build()
+    tree.intersect(boxes[0], 1.0)
+
+
 def test_build_odd_tree(instances):
     boxes, _ = instances
     with pytest.raises(AssertionError):
