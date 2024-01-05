@@ -11,7 +11,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -47,7 +46,7 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.ref }}
-          check-name: 'build'
+          check-name: 'build (3.11)'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
       - uses: actions/checkout@v3
