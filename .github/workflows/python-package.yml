@@ -16,7 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        # python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", ]
 
     steps:
     - uses: actions/checkout@v3
@@ -38,3 +39,24 @@ jobs:
     - name: Test with pytest
       run: |
         python -m poetry run pytest
+
+  run-and-push-benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+      - name: Checkout PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+      - name: Add benchmark files
+        run: gh add ./benchmarks
+      - name: Commit benchmark files
+        run: gh commit -m "Added benchmark file"
+      # - name: Push changes
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: git push
