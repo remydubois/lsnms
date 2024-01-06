@@ -15,9 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # python-version: ["3.8", "3.9", "3.10", "3.11"]
-        python-version: ["3.8", ]
-
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -46,6 +44,27 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: 'build (3.11)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      - name: Wait for tests to run and succeed
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: 'build (3.10)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      - name: Wait for tests to run and succeed
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: 'build (3.9)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      - name: Wait for tests to run and succeed
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           check-name: 'build (3.8)'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
@@ -54,15 +73,19 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: 3.11
+      - name: Run benchmarks
+        run: python -m poetry run pytest --benchmark-warmup="on"  --benchmark-enable --benchmark-autosave
+      - name: Log benchmark
+        run: poetry run pytest-benchmark compare --group-by="func" > benchmarks-history.txt
       - name: Checkout PR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr checkout ${{ github.event.pull_request.number }}
-      - name: Add benchmark files
-        run: git add ./benchmarks
+      - name: Add benchmark and history files
+        run: git add .
       - name: Commit benchmark files
-        run: git commit -m "Added benchmark file"
-      # - name: Push changes
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: git push
+        run: git commit -m "(AUTO-GENERATED) Added benchmark files"
+      - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git push
