@@ -44,4 +44,4 @@ jobs:
       - name: Create PR from new branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr create -B main --assignee remydubois -t "(CI) Benchmarks update"
+        run: gh pr create -B main --assignee remydubois -t "(CI) Benchmarks update" -b "Adding benchmark results"
