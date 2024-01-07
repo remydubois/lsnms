@@ -17,11 +17,9 @@ def intersection(boxA, boxB):
     return dx * dy
 
 
-def test_intersect_tree():
+def test_intersect_tree(instances, benchmark):
 
-    topleft = np.random.uniform(0.0, high=1_000, size=(10_000, 2))
-    wh = np.random.uniform(15, 45, size=topleft.shape)
-    boxes = np.concatenate([topleft, topleft + wh], axis=1)
+    boxes, _ = instances
 
     tree = RTree(boxes, 16)
 
@@ -36,6 +34,8 @@ def test_intersect_tree():
         out_inter = np.array([inter for i, inter in enumerate(np_intersect) if i not in indices])
         np.testing.assert_allclose(in_inter, intersections)
         np.testing.assert_array_less(out_inter, min_area)
+
+    benchmark(tree.intersect, queries, 0)
 
 
 def test_simple_query():
@@ -55,6 +55,11 @@ def test_build_odd_tree(instances):
     boxes, _ = instances
     with pytest.raises(AssertionError):
         _ = RTree(boxes, leaf_size=0)
+
+
+def test_build_tree(instances, benchmark):
+    boxes, _ = instances
+    _ = benchmark(RTree, boxes, leaf_size=1)
 
 
 def test_build_rnode_default_args(instances):

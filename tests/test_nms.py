@@ -11,7 +11,7 @@ from lsnms.nms import _nms, naive_nms
 from lsnms.util import clear_cache
 
 
-def test_rtree_nms(instances, score_threshold):
+def test_rtree_nms(instances, score_threshold, benchmark):
 
     boxes, scores = instances
 
@@ -26,7 +26,7 @@ def test_rtree_nms(instances, score_threshold):
     k1 = np.argwhere(scores_mask)[_k1, 0]
 
     # Compare sparse NMS
-    k2 = nms(boxes, scores, 0.5, score_threshold)
+    k2 = benchmark(nms, boxes, scores, 0.5, score_threshold)
 
     assert np.allclose(k1, k2)
 
@@ -58,7 +58,7 @@ def test_empty_nms(instances):
     assert keep.size == 0
 
 
-def test_rtree_multiclass_nms(instances, score_threshold):
+def test_rtree_multiclass_nms(instances, score_threshold, benchmark):
 
     boxes, scores = instances
     class_ids = np.random.randint(0, 50, size=len(boxes))
@@ -76,7 +76,7 @@ def test_rtree_multiclass_nms(instances, score_threshold):
     k1 = np.argwhere(score_mask)[_k1, 0]
 
     # Compare sparse NMS
-    k2 = nms(boxes, scores, 0.5, score_threshold, class_ids=class_ids)
+    k2 = benchmark(nms, boxes, scores, 0.5, score_threshold, class_ids=class_ids)
 
     assert np.allclose(k1, k2)
 

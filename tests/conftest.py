@@ -4,11 +4,12 @@ import pytest
 
 @pytest.fixture
 def instances():
-    topleft = np.random.uniform(0.0, high=1_000, size=(10_000, 2))
-    wh = np.random.uniform(15, 45, size=topleft.shape)
+    rng = np.random.RandomState(seed=0)
+    topleft = rng.uniform(0.0, high=1_000, size=(10_000, 2))
+    wh = rng.uniform(15, 45, size=topleft.shape)
 
     boxes = np.concatenate([topleft, topleft + wh], axis=1)
-    scores = np.random.uniform(0.01, 1.0, size=len(topleft))
+    scores = rng.uniform(0.01, 1.0, size=len(topleft))
 
     return boxes, scores
 
