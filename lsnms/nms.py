@@ -59,7 +59,7 @@ def _nms(
 
         # Query the overlapping boxes and return their intersection
         # return only boxes which have at least one pixel of overlap with the box of interest
-        query, query_intersections = rtree.intersect(boxA, 1.0)
+        query, query_intersections = rtree.intersect(boxA, 0.0)
 
         for query_idx, overlap in zip(query, query_intersections):
             if not to_consider[query_idx]:
@@ -72,7 +72,7 @@ def _nms(
         to_consider[current_idx] = False
 
     keep = np.array(keep)
-    return np.argwhere(score_mask)[:,0][keep]
+    return np.argwhere(score_mask)[:, 0][keep]
 
 
 def nms(
