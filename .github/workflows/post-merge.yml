@@ -12,7 +12,7 @@ on:
 
 jobs:
   run-and-push-benchmarks:
-    if: github.event.pull_request.merged == true
+    if: ${{ (github.event.pull_request.merged == true) && (github.event.pull_request.user.login != "github-actions") }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
         run: |
           git config --global user.name "Continuous Integration"
           git config --global user.email "username@users.noreply.github.com"
-          git checkout -b CI/benchmarks
+          git checkout -b CI/benchmarks(${{ github.sha }})
       - name: Add benchmark and history files
         run: git add .
       - name: Commit benchmark files
