@@ -24,6 +24,8 @@ def test_intersect_tree(instances, benchmark):
     tree = RTree(boxes, 16)
 
     queries = boxes[0]
+    # print(tree.intersect(queries, 0))
+    # import ipdb; ipdb.set_trace()
 
     for min_area in np.arange(10, 300, 30):
         indices, intersections = tree.intersect(queries, min_area)
@@ -35,7 +37,7 @@ def test_intersect_tree(instances, benchmark):
         np.testing.assert_allclose(in_inter, intersections)
         np.testing.assert_array_less(out_inter, min_area)
 
-    benchmark(tree.intersect, queries, 0)
+    benchmark(tree.intersect, queries, 1)
 
 
 def test_simple_query():

@@ -25,6 +25,7 @@ specs["leaf_size"] = int64
 specs["left"] = optional(node_type)
 specs["right"] = optional(node_type)
 specs["verbose"] = int64
+# specs["id"] = int64
 
 
 @jitclass(specs)
@@ -96,6 +97,7 @@ class RNode:
         self.right = None
         self._built = False
         self.verbose = verbose
+        # self.id = None
 
     def split(self):
         """
@@ -136,10 +138,12 @@ class RNode:
         which calls itself, the workaround used here.
         """
         # Reccursively attach children to the parent
-        # build(self)
+        # self.id = 0
+        steps = 0
         nodes = typed.List([self])
         while len(nodes):
             current = nodes.pop(-1)
+            steps += 1
             if not current.is_leaf:
                 left, right = current.split()
 
@@ -150,7 +154,30 @@ class RNode:
                 # Append children to the list of nodes to split
                 nodes.append(left)
                 nodes.append(right)
+
             current._built = True
+        # print('Build steps', steps)
+
+    # def f(self, n= 1e2):
+    #     if not self._built:
+    #         raise ValueError("Tree needs to be built before being queried.
+    #  Call RNode.build first.")
+
+    #     # Initialize buffers to hold indices of intersects and corresponding areas
+    #     # indices_buffer = typed.List.empty_list(int64)
+    #     # intersections_buffer = typed.List.empty_list(float64)
+    #     indices_buffer = [0]
+    #     intersections_buffer = [1.]
+    #     # This list will, by construction, be sorted by increasing area
+    #     # of intersection with the box queried
+    #     to_visit = typed.List([self])
+    #     while len(to_visit):
+    #         to_visit.pop(-1)
+    #     # for i in range(n):
+    #     #     to_visit.append(self)
+    #     # for i in range(n):
+    #     #     to_visit.pop()
+    #     return to_visit
 
     def intersect(self, X: np.ndarray, min_area: float = 1.0) -> Tuple[List[int], List[float]]:
         """
@@ -174,16 +201,22 @@ class RNode:
             raise ValueError("Tree needs to be built before being queried. Call RNode.build first.")
 
         # Initialize buffers to hold indices of intersects and corresponding areas
-        indices_buffer = typed.List.empty_list(int64)
-        intersections_buffer = typed.List.empty_list(float64)
-
+        # indices_buffer = typed.List.empty_list(int64)
+        # intersections_buffer = typed.List.empty_list(float64)
+        indices_buffer = []
+        intersections_buffer = []
         # This list will, by construction, be sorted by increasing area
         # of intersection with the box queried
+        # to_visit = typed.List.empty_list(deferred_type())
+        # to_visit.append(self)
         to_visit = typed.List([self])
+        # to_visit = [self]
+        steps = 0
         while len(to_visit):
+            steps += 1
             # Take the last node in list, which, by design, is the one having the highest
             # intersection with the box queried
-            current_node = to_visit.pop(-1)
+            current_node = to_visit.pop(0)
 
             # Compute the area of intersection upper bound
             # between this node and the bbox queried
@@ -193,67 +226,64 @@ class RNode:
             # by design all the bboxes contained in this node will
             # have an intersection too small
             if node_inter_UB < min_area:
-                if self.verbose >= 10:
-                    print(
-                        "[RTree] - Query: Node",
-                        current_node.bbox,
-                        "discarded (intersection:",
-                        node_inter_UB,
-                        ") => discarded",
-                        len(current_node.data),
-                        "bboxes.",
-                    )
+                # if self.verbose >= 10:
+                #     print(
+                #         "[RTree] - Query: Node",
+                #         current_node.bbox,
+                #         "discarded (intersection:",
+                #         node_inter_UB,
+                #         ") => discarded",
+                #         len(current_node.data),
+                #         "bboxes.",
+                #     )
                 continue
             else:
                 if not current_node.is_leaf:
-                    if self.verbose >= 10:
-                        print(
-                            "[RTree] - Query: Node",
-                            current_node.bbox,
-                            "searched forward (intersection:",
-                            node_inter_UB,
-                            ")",
-                        )
+                    # if self.verbose >= 10:
+                    #     print(
+                    #         "[RTree] - Query: Node",
+                    #         current_node.bbox,
+                    #         "searched forward (intersection:",
+                    #         node_inter_UB,
+                    #         ")",
+                    #     )
                     left_UB = intersection(X, current_node.left.bbox)
                     right_UB = intersection(X, current_node.right.bbox)
 
                     # Order the children by increasing area of intersection
                     if left_UB > right_UB:
-                        to_visit.append(current_node.right)
-                        to_visit.append(current_node.left)
+                        to_visit.insert(0, current_node.left)
+                        to_visit.insert(1, current_node.right)
                     else:
-                        to_visit.append(current_node.left)
-                        to_visit.append(current_node.right)
+                        to_visit.insert(0, current_node.right)
+                        to_visit.insert(1, current_node.left)
                 else:
                     # If it's leaf, simply review all the bboxes contained inside the node
-                    if self.verbose >= 10:
-                        print(
-                            "[RTree] - Query: Node",
-                            current_node.bbox,
-                            "is leaf, intersecting bboxes with query…",
-                        )
+                    # if self.verbose >= 10:
+                    #     print(
+                    #         "[RTree] - Query: Node",
+                    #         current_node.bbox,
+                    #         "is leaf, intersecting bboxes with query…",
+                    #     )
 
                     k = 0
                     for i, y in zip(current_node.indices, current_node.data):
                         inter = intersection(X, y)
-                        if inter > min_area:
-                            if self.verbose >= 100:
-                                print("\tBBox", y, "overlaps", inter, "with the query => relevant")
+                        if inter >= min_area:
                             indices_buffer.append(i)
                             intersections_buffer.append(inter)
-                            k = +1
-                        else:
-                            if self.verbose >= 100:
-                                print("\tBBox", y, "overlaps", inter, "with the query => discarded")
+                            k += 1
 
-                    if self.verbose >= 10:
-                        print(
-                            "[RTree] - Query: Found",
-                            k,
-                            "relevant bboxes in node",
-                            current_node.bbox,
-                        )
-
+                    # if self.verbose >= 10:
+                    #     print(
+                    #         "[RTree] - Query: Found",
+                    #         k,
+                    #         "relevant bboxes in node",
+                    #         current_node.bbox,
+                    #     )
+                    # if k > 0:
+                    #     print(current_node.bbox, k)
+        # print('steps', steps)
         return indices_buffer, intersections_buffer
 
 
