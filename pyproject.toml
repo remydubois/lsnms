@@ -10,7 +10,7 @@ keywords = ["NMS", "Non Maximum Suppression", "Histology image", "Satellite imag
 classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering"]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<=3.12"
+python = ">=3.10,<3.13"
 numpy = "2.2"
 numba = "^0.61.2"
 
@@ -18,11 +18,14 @@ numba = "^0.61.2"
 pytest = "^7.4.0"
 pytest-benchmark = {extras = ["histogram"], version = "^4.0.0"}
 pre-commit = "^4.2.0"
-torchvision = "0.16"
+# torchvision = { version = "0.15+cpu", source = "pytorch-cpu" }
+# torch = { version = "2.0+cpu", source = "pytorch-cpu" }
+torchvision = "0.15"
+torch = "2.0"
 
 
 [[tool.poetry.source]]
-name = "pytorch_cpu"
+name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
