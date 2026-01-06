@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 0.4.5
+------------
+- Supports python[3.9-3.13]
+
 Version 0.4.2
 ------------
 - Fixed issue #22 by releasing Numpy lock.
