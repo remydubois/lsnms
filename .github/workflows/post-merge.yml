@@ -6,13 +6,13 @@ name: Post-merge
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-    types: [closed]
+  # pull_request:
+  #   branches: [ "main" ]
+  #   types: [closed]
 
 jobs:
   run-and-push-benchmarks:
-    if: github.event.pull_request.merged == true
+    # if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
