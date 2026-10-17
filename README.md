@@ -23,6 +23,7 @@ The table below shows runtime of `torchvision`'s `nms` versus `lsnms.nms`.
 | 1,000  | 7.7ms | 0.50ms |
 | 10,000 | 1,190ms | 9.6ms |
 |100,000 | 179,045ms | 176ms |
+
 One can observe a quadratic growth of `torchvision`'s runtime, and a log-linear growth of `lsnms`'s runtime.  
 
 Note: runtimes measured on synthetic data, code in `conftest.py::instances(scenario="scattered")`.
@@ -43,7 +44,7 @@ make install
 Only dependencies are numpy and numba.
 
 ## Getting started:
-The full documentation is available [here](https://remydubois.github.io/illico/). A simple starter could be:
+The full documentation is available [here](https://remydubois.github.io/lsnms/). A simple starter could be:
 ```python
 import numpy as np
 from lsnms import nms, wbc
