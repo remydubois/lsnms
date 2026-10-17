@@ -6,14 +6,9 @@
 name: maturin-CI
 
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - '*'
-  pull_request:
-  workflow_dispatch:
+  release:
+    types: [published]
+    branches: [main]
 
 permissions:
   contents: read

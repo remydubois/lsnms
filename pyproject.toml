@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lsnms"
-version = "0.4.6"
+version = "0.5.0"
 description = "Large Scale Non Maximum Suppression"
 authors = ["Rémy Dubois <remydubois14@gmail.com>"]
 license = "MIT"

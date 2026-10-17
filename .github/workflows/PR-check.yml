@@ -1,0 +1,36 @@
+name: "PR lint: changelog + version bump"
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Enforce changelog updated
+      - name: Check changelog updated
+        uses: tarides/changelog-check-action@v2
+        with:
+          changelog: 'changelog.md'
+
+      # Enforce version bump in pyproject.toml
+      - name: Verify version bump in pyproject.toml
+        id: verify
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          BASE_VERSION=$(git show origin/${{ github.event.pull_request.base.ref }}:pyproject.toml \
+            | grep '^version' | head -n1 | sed 's/.*= *//; s/"//g')
+          HEAD_VERSION=$(grep '^version' pyproject.toml \
+            | head -n1 | sed 's/.*= *//; s/"//g')
+
+          echo "Base version: $BASE_VERSION"
+          echo "Head version: $HEAD_VERSION"
+
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            echo "Error: version was not bumped!"
+            exit 1
+          fi
