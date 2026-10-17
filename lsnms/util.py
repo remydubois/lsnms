@@ -411,11 +411,6 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: Optional[
     """
     Check arrays characteristics: dtype dimensionality and shape
     """
-    # Check dtypes:
-    if not boxes.dtype == "float64":
-        raise ValueError(f"Boxes should a float64 array. Received {boxes.dtype}")
-    if not scores.dtype == "float64":
-        raise ValueError(f"Scores should a float64 array. Received {scores.dtype}")
     if class_ids is not None:
         if not np.can_cast(class_ids, np.int64) or class_ids.min() < 0:
             raise ValueError(
@@ -442,8 +437,11 @@ def check_correct_arrays(boxes: np.array, scores: np.array, class_ids: Optional[
 
     # Check that boxes are in correct orientation
     deltas = boxes[:, 2:] - boxes[:, :2]
-    if not deltas.min() > 0:
-        raise ValueError("Boxes should be encoded [x1, y1, x2, y2] with x1 < x2 & y1 < y2")
+    if not np.nanmin(deltas) >= 0:
+        invalid_indices = np.where(deltas.min(axis=1) < 0)[0][:3]
+        raise ValueError(
+            f"Boxes should be encoded [x1, y1, x2, y2] with x1 < x2 & y1 < y2 at indices {invalid_indices}.\n{boxes[invalid_indices]}."
+        )
 
 
 def check_correct_input(
@@ -452,13 +450,24 @@ def check_correct_input(
     class_ids: Optional[np.array],
     iou_threshold: float,
     score_threshold: float,
+    enforce_double: bool,
 ):
     """
     Checks input validity: shape, dtype, dimensionality, and boundary values.
     """
 
-    boxes = np.asarray(boxes, dtype=np.float64)
-    scores = np.asarray(scores, dtype=np.float64)
+    # Convert to appropriate dtype
+    if enforce_double:
+        if boxes.dtype != np.float64:
+            boxes = np.asarray(boxes, dtype=np.float64)
+        if scores.dtype != np.float64:
+            scores = np.asarray(scores, dtype=np.float64)
+    else:
+        if not np.isdtype(boxes.dtype, (np.float32, np.float64)):
+            boxes = np.asarray(boxes, dtype=np.float32)
+        if not np.isdtype(scores.dtype, (np.float32, np.float64)):
+            scores = np.asarray(scores, dtype=np.float32)
+
     if class_ids is not None:
         class_ids = np.asarray(class_ids)
 

@@ -25,7 +25,7 @@ jobs:
           python -m pip install --upgrade poetry
           python -m poetry install --with dev
       - name: Run benchmarks
-        run: python -m poetry run pytest --benchmark-warmup="on" --benchmark-enable --benchmark-autosave
+        run: python -m poetry run pytest --benchmark-warmup="on" --benchmark-enable --benchmark-autosave --benchmark-only -m "not inter_framework and medium"
       - name: Log benchmark
         run: poetry run pytest-benchmark compare --group-by="func" > benchmarks-history.txt
       - name: Checkout new branch

@@ -1,0 +1,26 @@
+[package]
+name = "lsnms"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.34"
+ndarray = "0.17.2"
+num-traits = "0.2.19"
+numpy = "0.28.0"
+pyo3 = "0.28.2"
+rayon = "1.12.0"
+
+[lib]
+name = "lsnms_rs"
+crate-type = ["cdylib", "rlib"]
+
+[dev-dependencies]
+ndarray-rand = "0.16.0"
+rand = "0.10.3"
+
+[profile.test]
+inherits = "release"
+
+[profile.release]
+debug = true

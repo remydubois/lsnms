@@ -160,9 +160,7 @@ def wbc(
         )
 
     # Convert dtype, check shapes, dimensionality, and boundary values.
-    boxes, scores = check_correct_input(
-        boxes, scores, None, iou_threshold=iou_threshold, score_threshold=score_threshold
-    )
+    boxes, scores = check_correct_input(boxes, scores, None, iou_threshold, score_threshold, True)
     # Run WBC
     keep = _wbc(
         boxes,

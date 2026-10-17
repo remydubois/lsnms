@@ -166,10 +166,14 @@
     "benchmarks": [
         {
             "group": null,
-            "name": "test_rtree_nms",
-            "fullname": "tests/test_nms.py::test_rtree_nms",
-            "params": null,
-            "param": null,
+            "name": "test_rtree_nms[scattered-n_instances=10000-numba]",
+            "fullname": "tests/test_nms.py::test_rtree_nms[scattered-n_instances=10000-numba]",
+            "params": {
+                "scenario": "scattered",
+                "n_instances": 10000,
+                "backend": "numba"
+            },
+            "param": "scattered-n_instances=10000-numba",
             "extra_info": {},
             "options": {
                 "disable_gc": false,
@@ -201,10 +205,14 @@
         },
         {
             "group": null,
-            "name": "test_rtree_multiclass_nms",
-            "fullname": "tests/test_nms.py::test_rtree_multiclass_nms",
-            "params": null,
-            "param": null,
+            "name": "test_rtree_multiclass_nms[scattered-n_instances=10000-numba]",
+            "fullname": "tests/test_nms.py::test_rtree_multiclass_nms[scattered-n_instances=10000-numba]",
+            "params": {
+                "scenario": "scattered",
+                "n_instances": 10000,
+                "backend": "numba"
+            },
+            "param": "scattered-n_instances=10000-numba",
             "extra_info": {},
             "options": {
                 "disable_gc": false,
@@ -236,10 +244,13 @@
         },
         {
             "group": null,
-            "name": "test_intersect_tree",
-            "fullname": "tests/test_rtree.py::test_intersect_tree",
-            "params": null,
-            "param": null,
+            "name": "test_intersect_tree[scattered-n_instances=10000]",
+            "fullname": "tests/test_rtree.py::test_intersect_tree[scattered-n_instances=10000]",
+            "params": {
+                "scenario": "scattered",
+                "n_instances": 10000
+            },
+            "param": "scattered-n_instances=10000",
             "extra_info": {},
             "options": {
                 "disable_gc": false,
@@ -271,10 +282,13 @@
         },
         {
             "group": null,
-            "name": "test_build_tree",
-            "fullname": "tests/test_rtree.py::test_build_tree",
-            "params": null,
-            "param": null,
+            "name": "test_build_tree[scattered-n_instances=10000]",
+            "fullname": "tests/test_rtree.py::test_build_tree[scattered-n_instances=10000]",
+            "params": {
+                "scenario": "scattered",
+                "n_instances": 10000
+            },
+            "param": "scattered-n_instances=10000",
             "extra_info": {},
             "options": {
                 "disable_gc": false,
