@@ -1,8 +1,10 @@
+from enum import Enum
 from typing import Optional
 
 import numpy as np
 from numba import njit
 
+from lsnms.lsnms_rs import rtree_nms_rs
 from lsnms.rtree import RNode
 from lsnms.util import (
     area,
@@ -13,8 +15,13 @@ from lsnms.util import (
 )
 
 
+class Backend(Enum):
+    NUMBA = "numba"
+    RUST = "rust"
+
+
 @njit(cache=False)
-def _nms(
+def rtree_nms(
     boxes: np.array,
     scores: np.array,
     iou_threshold: float = 0.5,
@@ -27,7 +34,7 @@ def _nms(
     keep = []
 
     # Discard boxes and scores below score threshold right now to avoid building the tree on
-    # useless boxes
+    # useless boxes. This discards bboxes with NaN as score (IEEE 754).
     score_mask = scores > score_threshold
     boxes = boxes[score_mask]
     scores = scores[score_mask]
@@ -56,6 +63,9 @@ def _nms(
             break
 
         boxA = boxes[current_idx]
+        if np.any(np.isnan(boxA)):
+            print(current_idx, "—th bbox has a NaN coordinate and got evicted.")
+            continue
 
         # Query the overlapping boxes and return their intersection
         # return only boxes which have at least one pixel of overlap with the box of interest
@@ -82,14 +92,27 @@ def nms(
     score_threshold: float = 0.0,
     class_ids: Optional[np.array] = None,
     rtree_leaf_size: int = 32,
+    backend: str | Backend = Backend.RUST,
 ) -> np.array:
-    """
-    Sparse NMS, will perform Non Maximum Suppression by only comparing overlapping boxes.
-    This turns the usual O(n**2) complexity of the NMS into a O(log(n))-complex algorithm.
-    The overlapping boxes are queried using a R-tree, ensuring a log (average case) complexity.
+    """Run the CPU-based sparse NMS algorithm.
 
-    If `class_ids` is given (one class per object), a class-wise NMS will be applied. This is simply
-    done by offsetting the bounding boxes so that bboxes of different classes dont overlap.
+    The implementation uses rectangular tree (R-Tree) for efficient querying of overlapping boxes.
+    Note that in the case of "natural" images (< 20 detected objects in the image) or very low
+    redundancy in the detection, a naive algorithm will likely be faster (even more if GPU based).
+
+    This implementation becomes increasingly useful as the number of objects grows, as its complexity
+    is O(n log n) rather than O(n**2) for vanilla NMS. Typical use cases are object detection algorithms
+    ran in a sliding overlapping windows fashion. A vanilla NMS algorithm can be ran window-wise, but
+    because windows do overlap (to accomodate for side effects), a final NMS pass is required. This is
+    where sparse NMS shines.
+
+    Satellite aerial or microscopy images can easily produce hundreds of thousands of detected objects
+    per image, making torch's GPU implementation run out of memory, and torch's CPU implementation very
+    time consuming.
+
+    Note: the Rust and Numba backends do not provide the exact same algorithm. Rust is expected to be
+    faster in most cases, on top of not requiring the JIT compilation that Numba does. Results shall
+    match in both cases.
 
     ```python3
     boxes = # array of boxes in format pascal VOC (x0, y0, x1, y1)
@@ -128,32 +151,47 @@ def nms(
         same class.
     rtree_leaf_size: int, optional
         The leaf size parameter of the underlying R-Tree built for box query.
+    backend: str|Backend, optional
+        The backend to use for NMS computation. Can be one of 'numba' or 'rust'. By default, 'rust'.
 
     Returns
     -------
     np.array
         Indices of boxes kept, in decreasing order of confidence score.
     """
+    backend = Backend(backend)
 
     if class_ids is None:
         class_ids = np.zeros(len(boxes), dtype=np.int64)
 
     # Convert dtype, check shapes, dimensionality, and boundary values.
+    # If backend is Rust, both f32 and f64 are supported. If backend is Numba, enforce double precision (f64).
     boxes, scores, class_ids = check_correct_input(
-        boxes, scores, class_ids, iou_threshold=iou_threshold, score_threshold=score_threshold
+        boxes, scores, class_ids, iou_threshold, score_threshold, backend is Backend.NUMBA
     )
 
     # Offset the bounding boxes per class, note that this func is not jitted, so applied here
     boxes = offset_bboxes(boxes, class_ids)
 
     # Run NMS
-    keep = _nms(
-        boxes,
-        scores,
-        iou_threshold=iou_threshold,
-        score_threshold=score_threshold,
-        rtree_leaf_size=rtree_leaf_size,
-    )
+    if backend is Backend.NUMBA:
+        keep = rtree_nms(
+            boxes,
+            scores,
+            iou_threshold=iou_threshold,
+            score_threshold=score_threshold,
+            rtree_leaf_size=rtree_leaf_size,
+        )
+    elif backend is Backend.RUST:
+        keep = rtree_nms_rs(
+            boxes,
+            scores,
+            iou_threshold=iou_threshold,
+            score_threshold=score_threshold,
+            rtree_leaf_size=rtree_leaf_size,
+        )
+    else:
+        raise ValueError(f"Unsupported backend: {backend}, should be one of {list(Backend)}")
 
     return keep
 

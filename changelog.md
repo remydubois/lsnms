@@ -1,9 +1,17 @@
 Changelog
 =========
 
+Version 0.5.0
+------------
+- Adds a Rust backend that is chosen by default. The Rust backend alleviates the just in time compilation overhead of the Numba backend.
+
+Version 0.4.6
+------------
+- Supports python[3.10-3.14]
+
 Version 0.4.5
 ------------
-- Supports python[3.9-3.13]
+- Supports python[3.10-3.14]
 
 Version 0.4.2
 ------------

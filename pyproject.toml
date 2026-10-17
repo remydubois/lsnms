@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lsnms"
-version = "0.4.5"
+version = "0.5.0"
 description = "Large Scale Non Maximum Suppression"
 authors = ["Rémy Dubois <remydubois14@gmail.com>"]
 license = "MIT"
@@ -9,8 +9,17 @@ repository = "https://github.com/remydubois/lsnms"
 keywords = ["NMS", "Non Maximum Suppression", "Histology image", "Satellite images", "Object detection"]
 classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering"]
 
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "lsnms.lsnms_rs"
+
+
 [tool.poetry.dependencies]
-python = ">=3.10,<3.14"
+python = ">=3.10,<=3.14"
 numba = "^0.63.1"
 
 [tool.poetry.group.dev.dependencies]
@@ -20,13 +29,31 @@ torch = "^2.9.1"
 torchvision = "^0.24.1"
 pillow = "^12.1.0"
 pre-commit = "^4.5.1"
+maturin = "^1.15.0"
+pytest-regex = "^0.2.0"
+ruff = "^0.17.1"
+sphinx = ">=7.0.0,<8.0.0"
+furo = "^2025.12.19"
+myst-parser = ">=2.0.0,<5.0.0"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "E731",  # do not assign a lambda expression, use a def
+    "E741",  # ambiguous variable name
+]
 
-[build-system]
-requires = ["poetry-core>=1.0.0", "setuptools>=30.3.0,<50",]
-build-backend = "poetry.core.masonry.api"
+[tool.pytest.ini_options]
+markers = [
+    "inter_framework: Benchmarks to compare lsnms to torch",
+    "intra_framework: Benchmarks to track speed of lsnms across versions",
+]

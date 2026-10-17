@@ -75,6 +75,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
 
 # PyBuilder
 .pybuilder/
@@ -145,3 +146,10 @@ cython_debug/
 # static files generated from Django application using `collectstatic`
 media
 static
+
+
+# Added by cargo
+
+/target
+# Jupyter notebooks
+notebooks
