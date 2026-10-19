@@ -179,3 +179,9 @@ jobs:
         run: uv publish 'wheels-*/*'
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      - name: Upload wheels to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: wheels-*/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
