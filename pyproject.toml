@@ -7,7 +7,7 @@ authors = [
 ]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.11,<=3.14.0"
+requires-python = ">=3.11,<3.15"
 # repository = "https://github.com/remydubois/lsnms"
 keywords = ["NMS", "Non Maximum Suppression", "Histology image", "Satellite images", "Object detection"]
 classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering"]
