@@ -1,14 +1,19 @@
-[tool.poetry]
+[project]
 name = "lsnms"
 version = "0.5.0"
 description = "Large Scale Non Maximum Suppression"
-authors = ["Rémy Dubois <remydubois14@gmail.com>"]
+authors = [
+    {name = "remydubois",email = "remydubois14@gmail.com"}
+]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/remydubois/lsnms"
+requires-python = ">=3.11,<3.15"
+# repository = "https://github.com/remydubois/lsnms"
 keywords = ["NMS", "Non Maximum Suppression", "Histology image", "Satellite images", "Object detection"]
 classifiers=["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering"]
-
+dependencies = [
+    "numba>=0.63.1,<0.64.0",
+]
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
@@ -17,10 +22,8 @@ build-backend = "maturin"
 features = ["pyo3/extension-module"]
 module-name = "lsnms.lsnms_rs"
 
-
-[tool.poetry.dependencies]
-python = ">=3.10,<=3.14"
-numba = "^0.63.1"
+[tool.poetry]
+requires-poetry = ">=2.0,<3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
